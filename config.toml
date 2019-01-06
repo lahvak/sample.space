@@ -1,0 +1,38 @@
+baseurl = "/"
+title = "Lahvak's Sample Space"
+author = "Jan Hlavacek"
+relativeurls = true
+canonifyurls = true
+languagecode = "en"
+theme = "hugo-tanka"
+
+googleAnalytics = ""
+disqusShortname = ""
+disable_mathjax = false
+
+[permalinks]
+    post = "/:year/:month/:day/:slug/"
+
+ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$"]
+
+[params]
+  sitename = "The Sample Space"
+  GithubEdit = "https://github.com/lahvak/testing/edit/master/content/"
+  utterancesRepo = "lahvak/testing"
+
+[[menu.main]]
+    name = "Home"
+    url = "https://space.lahvak.space/"
+    weight = 1
+[[menu.main]]
+    name = "GitHub"
+    url = "https://github.com/lahvak"
+    weight = 2
+[[menu.main]]
+    name = "About"
+    url = "about.html"
+    weight = 3
+[[menu.main]]
+    name = "RSS"
+    url = "/index.xml"
+    weight = 5
