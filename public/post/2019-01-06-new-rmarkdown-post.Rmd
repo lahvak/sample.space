@@ -1,0 +1,19 @@
+---
+title: New rmarkdown post
+author: Jan Hlavacek
+date: '2019-01-06'
+slug: new-rmarkdown-post
+categories:
+  - R
+  - Julia
+tags:
+  - R Markdown
+---
+
+Blah blah bah
+
+```{julia}
+1 + 1
+```
+
+Blah blah

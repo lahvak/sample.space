@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Julia on Lahvak&#39;s Sample Space</title>
+    <link>/categories/julia/</link>
+    <description>Recent content in Julia on Lahvak&#39;s Sample Space</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sun, 06 Jan 2019 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/categories/julia/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>New rmarkdown post</title>
+      <link>/2019/01/06/new-rmarkdown-post/</link>
+      <pubDate>Sun, 06 Jan 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/2019/01/06/new-rmarkdown-post/</guid>
+      <description>Blah blah bah
+1 + 1 ## 2 Blah blah</description>
+    </item>
+    
+  </channel>
+</rss>
