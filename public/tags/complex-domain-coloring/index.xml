@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Lahvak&#39;s Sample Space</title>
-    <link>/</link>
-    <description>Recent content on Lahvak&#39;s Sample Space</description>
+    <title>Complex Domain Coloring on Lahvak&#39;s Sample Space</title>
+    <link>/tags/complex-domain-coloring/</link>
+    <description>Recent content in Complex Domain Coloring on Lahvak&#39;s Sample Space</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <lastBuildDate>Sun, 06 Jan 2019 00:00:00 +0000</lastBuildDate>
     
-	<atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="/tags/complex-domain-coloring/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -19,16 +19,6 @@
       <guid>/2019/01/06/visualize-continuing-fractions-with-julia/</guid>
       <description>I was sitting on this for few years now, using it as an example in a couple of seminar talks, but not really doing anything with it. It seems like a good candidate for a first post on my new blog.
 Complex Domain Coloring A long time ago I ran across a website created by Frank Farris and Jeffrey Hoffstein, that showed some awesome images of automorphic functions created using a method for visualizing complex functions of complex variable called Complex Domain Coloring.</description>
-    </item>
-    
-    <item>
-      <title></title>
-      <link>/about/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>/about/</guid>
-      <description>The sample space is a blog written by Jan Hlavacek.
-It is currently written using Blogdown.</description>
     </item>
     
   </channel>

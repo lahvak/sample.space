@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  
+
+  <link rel="icon" type="image/png" href="../../../../favicon.png">
+  
+  <link rel="stylesheet" href="../../../../css/github.css" rel="stylesheet" id="theme-stylesheet"> 
+    <script src="../../../../js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+  <title>
+    
+    
+     Visualize complex continuing fractions with Julia 
+    
+  </title>
+  <link rel="canonical" href="../../../../2019/01/06/visualize-continuing-fractions-with-julia/">
+
+  <link rel="stylesheet" href="../../../../css/fonts.css" />
+  <link rel="stylesheet" href="../../../../css/style.css" />
+
+  
+</head>
+
+<body>
+<section id=nav>
+  <h1><a href="../../../../">The Sample Space</a></h1>
+  <ul>
+    
+    <li><a href="https://space.lahvak.space/">Home</a></li>
+    
+    <li><a href="https://github.com/lahvak">GitHub</a></li>
+    
+    <li><a href="../../../../about/">About</a></li>
+    
+    <li><a href="../../../../index.xml">RSS</a></li>
+    
+  </ul>
+</section>
+
+
+<section id=content>
+  <h1> Visualize complex continuing fractions with Julia </h1>
+
+  <div id=sub-header>
+    Jan Hlavacek · 2019/01/06 · 9 minute read
+  </div>
+
+  <div class="entry-content">
+    
+
+
+<p>I was sitting on this for few years now, using it as an example in a couple of
+seminar talks, but not really doing anything with it. It seems like a good
+candidate for a first post on my new blog.</p>
+<div id="complex-domain-coloring" class="section level2">
+<h2>Complex Domain Coloring</h2>
+<p>A long time ago I ran across a
+<a href="http://math.scu.edu/~ffarris/auto/auto.html">website</a> created by <a href="http://math.scu.edu/~ffarris/">Frank
+Farris</a> and Jeffrey Hoffstein, that showed some
+awesome images of automorphic functions created using a method for visualizing
+complex functions of complex variable called <a href="https://en.wikipedia.org/wiki/Domain_coloring">Complex Domain
+Coloring</a>. I immediately tried
+to create similar images, at the beginning using the GNU Image
+Manipulation Program (GIMP) and its <a href="https://github.com/schani/mathmap/">MathMap
+plugin</a>. Initially MathMap did
+not even have any support for complex numbers, and all calculations has to be done
+using reals, which made more complicated functions practically impossible to
+work with. <a href="http://users.mai.liu.se/hanlu09/complex/">Hans Lundmark</a> was also
+interested in working with MathMap plugin, and he added a support for complex
+numbers, so we were able to create some pretty interesting images. Later I
+wrote some Python scripts that produced some pretty nice results, but were
+horribly written, and luckily, got lost in the cracks of time. I also used a
+nice <a href="http://www.jedsoft.org/fun/complex/">S-lang script</a> written by <a href="https://www.jedsoft.org/">John
+Davis</a>. I still have some old images created with
+GIMP, Python and S-Lang at my <a href="http://webp.svsu.edu/~jhlavace/pictures.html">old website</a>, unfortunately,
+I no longer have an access to update the site.</p>
+<p>Couple years ago, when reading the AMS <a href="https://blogs.ams.org/blogonmathblogs/">blog on math blogs</a>, I came across a link to a
+<a href="https://kettenreihen.wordpress.com/">website</a> that posted two or three images of
+complex valued continued fraction approximations each day. At that time I was
+just learning Julia, and decided that with its speed it would be a perfect tool
+for generating such images. That resulted in a Jupyter notebook with some code
+generating such images. While looking for it last month, I was not able to
+find it. I believe now that I had it stored on <code>juliabox.org</code>, and when they
+moved to a <code>.com</code> domain, I completely missed the transition period when you
+could have your files moved over, and now they are gone. So it had to be
+written again, and here it is.</p>
+</div>
+<div id="calculating-continuing-fractions" class="section level2">
+<h2>Calculating continuing fractions</h2>
+<p>First we need to have some way to calculate convergents of continuing
+fractions. That is actually surprisingly easy: there is a simple doubly
+recursive formula that can be used.</p>
+<p>Suppose we have a continuing fraction</p>
+<p><span class="math display">\[a_0 + \frac{b_1}{a_1 + \frac{b_2}{a_2 + \frac{b_3}{a_3 + \ddots}}}\]</span></p>
+<p>A bit of symbol pushing reveals that its <span class="math inline">\(k\)</span>-th convergent can be written in
+the form</p>
+<p><span class="math display">\[\frac{n_k}{d_k}\]</span></p>
+<p>where both <span class="math inline">\(n_k\)</span> and <span class="math inline">\(d_k\)</span> satisfy the recursive formula</p>
+<p><span class="math display">\[x_{k} = a_k x_{k-1} + b_k x_{k-2}\]</span></p>
+<p>with initial values</p>
+<p><span class="math display">\[\begin{aligned}
+n_{-1} &amp;= 1\\
+n_0 &amp;= a_0\\
+d_0 &amp;= 1\\
+d_1 &amp;= a_1
+\end{aligned}\]</span></p>
+<div id="special-example" class="section level3">
+<h3>Special example</h3>
+<p>If <span class="math inline">\(a_i = 1\)</span> for <span class="math inline">\(i = 0, 1, 2, \dots\)</span> and <span class="math inline">\(b_i = 1\)</span> for <span class="math inline">\(i = 1, 2, \dots\)</span>, the
+recursive formula becomes</p>
+<p><span class="math display">\[x_k = x_{k-1} + x_{k-2}\]</span></p>
+<p>and <span class="math inline">\(n_k\)</span> is the <span class="math inline">\((k+2)\)</span>-nd Fibonacci number, while <span class="math inline">\(d_k\)</span> is the <span class="math inline">\((k+1)\)</span>-st
+Fibonacci number. The convergents of the continuing fraction</p>
+<p><span class="math display">\[1 + \frac{1}{1 + \frac{1}{1 + \frac{1}{1 + \ddots}}}\]</span></p>
+<p>are the ratios of consecutive Fibonacci numbers, and converge to the golden
+ratio</p>
+<p><span class="math display">\[\psi = \frac{1 + \sqrt{5}}{2}\]</span></p>
+</div>
+<div id="julia-implementation" class="section level3">
+<h3>Julia implementation</h3>
+<p>Our continuous fraction coefficients will be functions of a complex variable.
+We will also want to calculate the convergents for a whole array of complex
+numbers at once. Both of thee things are easy in Julia.</p>
+<p>We want to find convergents of a continuous fraction</p>
+<p><span class="math display">\[a_0(z) + \frac{b_1(z)}{a_1(z) + \frac{b_2(z)}{a_2(z) + \frac{b_3(z)}{a_3(z) + \ddots}}}\]</span></p>
+<p>We can consider <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span> functions of two variables: the index <span class="math inline">\(i\)</span> and a
+complex number <span class="math inline">\(z\)</span>:</p>
+<p><span class="math display">\[\begin{aligned}
+a :\ &amp; \mathbb{N}\times\mathbb{C} \mapsto \mathbb{C}\\
+b :\ &amp; \mathbb{N}^+\times\mathbb{C} \mapsto \mathbb{C}
+\end{aligned}\]</span></p>
+<p>We will first define a function <code>drec</code> that will implement the doubly recursive
+formula. It will receive the coefficient functions <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span>, with signatures
+<code>Int64 -&gt; T -&gt; T</code> where in our case <code>T</code> will be some sort of complex number or
+complex number array, two values of type <code>T</code>, representing the “initial values” <span class="math inline">\(x_{s-2}\)</span> and
+<span class="math inline">\(x_{s-1}\)</span>, starting index <span class="math inline">\(s\)</span> that will be the index of the first calculated
+value, and ending index <span class="math inline">\(e\)</span> that will be the index of the last calculated
+value, one that will be returned. Finally, <code>drec</code> will receive as its last
+argument a value of type <code>T</code>.</p>
+<p>The function will use <em>broadcasting</em> versions of operators so it will allow <code>T</code>
+to be an <em>array</em>.</p>
+<pre class="julia"><code>function drec(a::Function, b::Function, 
+              xₛ₋₂::T, xₛ₋₁::T, s::Int64, 
+              e::Int64, z::T) where {T}
+    for i = s:e
+        (xₛ₋₂, xₛ₋₁) = (xₛ₋₁, a(i, z) .* xₛ₋₁ .+ b(i, z) .* xₛ₋₂)
+    end
+    return xₛ₋₁
+end</code></pre>
+<pre><code>## drec (generic function with 1 method)</code></pre>
+<p>Now we will use the doubly recursive formula to find both the numerator and the
+denominator of the <span class="math inline">\(k\)</span>-th convergent. Again, all operators broadcast.</p>
+<pre class="julia"><code>function contfrac(a::Function, b::Function, k::Int64, z)
+    n0 = a(0, z)
+    n1 = a(1, z) .* n0 .+ b(1, z)
+    d1 = a(1, z)
+    d2 = a(2, z) .* d1 .+ b(2, z)
+
+    return drec(a, b, n0, n1, 2, k, z) ./ drec(a, b, d1, d2, 3, k, z)
+end</code></pre>
+<pre><code>## contfrac (generic function with 1 method)</code></pre>
+</div>
+<div id="generating-images" class="section level3">
+<h3>Generating images</h3>
+<p>We will start by creating a <span class="math inline">\(500\times 500\)</span> array of complex numbers
+representing an area of complex plane (this should really be made more
+flexible, but at this moment I just want to see some pictures, so I cannot be
+bothered to do this right).</p>
+<pre class="julia"><code>function plane(x0, y0, x1, y1)
+    xscale = (x1 - x0)/500
+    yscale = (y1 - y0)/500
+    return [(x0 + xscale*i) + (y1 - yscale*j)im for j=0:500, i=0:500]
+end</code></pre>
+<pre><code>## plane (generic function with 1 method)</code></pre>
+<p>We will feed this region as an input to our continuing fraction approximation to get an array of complex values. Then we convert this array into an image.</p>
+</div>
+<div id="mapping-complex-numbers-to-colors" class="section level3">
+<h3>Mapping complex numbers to colors</h3>
+<p>Now we need some way to turn an array of complex numbers into an array of
+colors. For that we will need the <code>Images</code> module.</p>
+<pre class="julia"><code>using Images</code></pre>
+<p>There are infinitely many ways of mapping the complex plane into a
+color space. We will try the following three:</p>
+<div id="a-simple-gray-scale-mapping" class="section level4">
+<h4>A simple gray scale mapping</h4>
+<p>In this mapping the color associated to a complex number is determined purely
+by its argument, in such a way that real axis will be white and imaginary axis
+black. This is, as far as I can tell, the mapping used on the website that
+came up with the images we are trying to imitate.</p>
+<pre class="julia"><code>function GrayReIm(z)
+    shade = 2 .* abs.(abs.(angle.(z)) ./ pi .- 0.5)
+    return Gray.(shade)
+end</code></pre>
+<pre><code>## GrayReIm (generic function with 1 method)</code></pre>
+<pre class="julia"><code>
+colors = GrayReIm(plane(-1.0, -1.0, 1.0, 1.0));</code></pre>
+<p>This will produce the following coloring of the complex plane:</p>
+<div class="figure">
+<img src="../../../../post/2019-01-06-visualize/grayreim.png" alt="gray coloring" />
+<p class="caption">gray coloring</p>
+</div>
+</div>
+<div id="map-argument-to-hue" class="section level4">
+<h4>Map argument to hue</h4>
+<p>Just like the previous mapping, the color of a number is determined purely by
+its argument. This time we map the argument to the hue, while keeping the
+saturation and lightness maximum.</p>
+<pre class="julia"><code>function ArgHue(z)
+    hue = ((angle.(z)) ./ π .+ 1) .* 180
+    return HSV.(hue, 1, 1)
+end</code></pre>
+<pre><code>## ArgHue (generic function with 1 method)</code></pre>
+<pre class="julia"><code>
+colors = ArgHue(plane(-1.0, -1.0, 1.0, 1.0));</code></pre>
+<p>This will produce the following coloring of the complex plane:</p>
+<div class="figure">
+<img src="../../../../post/2019-01-06-visualize/arghue.png" alt="hue coloring" />
+<p class="caption">hue coloring</p>
+</div>
+</div>
+<div id="map-complex-numbers-to-hsv-colors" class="section level4">
+<h4>Map complex numbers to HSV colors</h4>
+<p>This is not just one mapping, instead it is a function that generate mappings.
+The hue is determined by the argument of the complex number, just like with the
+<code>ArgHue</code> mapping above, but this time the saturation and lightness are
+calculated from the modulus of the complex number. The calculation is
+influenced by two parameters, <code>f1</code> and <code>f2</code>.</p>
+<pre class="julia"><code>function CompHSV(f1, f2)
+    function f(z)
+        hue = ((angle.(z)) ./ π .+ 1) .* 180
+        s = 2 .* atan.(( abs.(f1 .* z))) ./ π
+        v = 1 .- 2 .* atan.(( abs.(f2 .* z))) ./ π
+        return HSV.(hue, s, v)
+    end
+
+    return f
+end</code></pre>
+<pre><code>## CompHSV (generic function with 1 method)</code></pre>
+<pre class="julia"><code>
+colors = CompHSV(2.0, 0.5)(3 .* plane(-1.0, -1.0, 1.0, 1.0));</code></pre>
+<p>This will produce the following coloring of the complex plane:</p>
+<div class="figure">
+<img src="../../../../post/2019-01-06-visualize/comphsv.png" alt="hsv coloring" />
+<p class="caption">hsv coloring</p>
+</div>
+</div>
+</div>
+<div id="generating-the-actual-plot" class="section level3">
+<h3>Generating the actual plot</h3>
+<p>The following function puts it all together. It receives the corners of the
+plotted region, the coefficient functions <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span>, the number indicating
+which convergent to calculate, and a coloring function. It will return the
+resulting image.</p>
+<pre class="julia"><code>function plotCF(x0, y0, x1, y1, a::Function, b::Function, k::Int64,
+                coloring::Function)
+    z = plane(x0, y0, x1, y1)
+    image = contfrac(a, b, k, z)
+    return coloring(image)
+end</code></pre>
+<pre><code>## plotCF (generic function with 1 method)</code></pre>
+</div>
+</div>
+<div id="examples" class="section level2">
+<h2>Examples</h2>
+<div id="image-no-17" class="section level3">
+<h3>Image no 17</h3>
+<pre class="julia"><code>function a(i::Int64, z)
+    if i == 0
+      return zero(z)
+    end
+    return z .* cis(π * i/2)
+end</code></pre>
+<pre><code>## a (generic function with 1 method)</code></pre>
+<pre class="julia"><code>
+function b(i::Int64, z)
+    return zero(z) .+ i
+end</code></pre>
+<pre><code>## b (generic function with 1 method)</code></pre>
+<pre class="julia"><code>
+img = plotCF(-2.0, -2.0, 2.0, 2.0, a, b, 100, GrayReIm);</code></pre>
+<div class="figure">
+<img src="../../../../post/2019-01-06-visualize/image1.png" alt="Image number 17" />
+<p class="caption">Image number 17</p>
+</div>
+</div>
+<div id="image-no-255" class="section level3">
+<h3>Image no 255</h3>
+<pre class="julia"><code>function a1(i::Int64, z)
+    if i == 0
+        return zero(z)
+    end
+    return cis.(π .* z)
+end</code></pre>
+<pre><code>## a1 (generic function with 1 method)</code></pre>
+<pre class="julia"><code>
+function b1(i::Int64, z)
+  return (-1)^i .* z
+end</code></pre>
+<pre><code>## b1 (generic function with 1 method)</code></pre>
+<pre class="julia"><code>
+img = plotCF(-1.0, -.5, 1.0, 1.5, a1, b1, 100, ArgHue);</code></pre>
+<div class="figure">
+<img src="../../../../post/2019-01-06-visualize/image2.png" alt="Image number 255" />
+<p class="caption">Image number 255</p>
+</div>
+</div>
+<div id="image-no-246" class="section level3">
+<h3>Image no 246</h3>
+<pre class="julia"><code>function a2(i::Int64, z)
+    if i == 0
+        return zero(z)
+    end
+    return i * cis.(-π * i/2) .* z
+end</code></pre>
+<pre><code>## a2 (generic function with 1 method)</code></pre>
+<pre class="julia"><code>
+function b2(i::Int64, z)
+    return cis(-π*i/2) * i .+ z
+end</code></pre>
+<pre><code>## b2 (generic function with 1 method)</code></pre>
+<pre class="julia"><code>
+img = plotCF(-1.0, -.5, 1.0, 1.5, a2, b2, 100, CompHSV(2.0, 0.5));</code></pre>
+<div class="figure">
+<img src="../../../../post/2019-01-06-visualize/image3.png" alt="Image number 246" />
+<p class="caption">Image number 246</p>
+</div>
+</div>
+</div>
+<div id="problems-notes-etc." class="section level2">
+<h2>Problems, notes, <em>etc.</em></h2>
+<p>One big problem with these images is that they are <em>not</em> images of continuing
+fractions. At best they are images of approximations of these fractions, but
+even that is not necessarily true. What we really visualize here are specific
+<em>convergents</em> of the continuing fractions, without actually making any claims
+of convergence or quality of approximation.</p>
+<p>Even in cases where the continuing fraction converges, the method we use for
+calculating convergents is of limited use: the numerator and denominator
+sequences may diverge, and so trying to improve our approximation of the
+continuing fraction may result in a floating point overflow.</p>
+<p>As far the Julia code goes, you can see that it is all written in vectorized
+form, with almost mo explicit loops. I find that style easier to both write and
+read, especially when coding math, and in most interpreted languages, such code
+is also faster. In Julia, however, well written loops are actually faster than
+vectorized code. It would be interesting to see how much speed up could be gain
+by de-vectorizing the code.</p>
+</div>
+
+  </div>
+
+  <div id=links>
+    
+    
+  </div>
+</section>
+
+
+
+
+
+
+  
+
+
+
+<a href='https://github.com/lahvak/testing/edit/master/content/post/2019-01-06-visualize-continuing-fractions-with-julia.Rmd'>Edit this page</a> on GitHub.
+
+
+
+
+
+<section id="comments">
+<div id="utterances"></div>
+<script src="https://utteranc.es/client.js"
+        repo='lahvak/testing';
+        issue-term="pathname"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+<noscript>Enable JavaScript to view comments.</noscript>
+</section>
+
+
+  
+  
+<script src="../../../../js/math-code.js"></script>
+<script async src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+
+</body>
+</html>
+
