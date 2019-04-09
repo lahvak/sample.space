@@ -3,9 +3,11 @@
 <section id=content>
   <h1>{{ if .Params.heading }} {{ .Params.heading }} {{ else }} {{ .Title }} {{ end }}</h1>
 
+{{ if eq .Section "post" }}
   <div id=sub-header>
     {{ .Params.author }} · {{ .Date.Format (.Site.Params.dateform | default "2006/01/02") }} · {{ .ReadingTime }} minute read
   </div>
+{{ end }}
 
   <div class="entry-content">
     {{ .Content }}
@@ -21,8 +23,12 @@
   </div>
 </section>
 
+{{ if eq .Section "post" }}
+
 {{ partial "edit.html" . }}
 
 {{ partial "utterances.html" . }}
+
+{{ end }}
 
 {{ partial "footer.html" . }}

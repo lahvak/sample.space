@@ -16,7 +16,7 @@ params:
 
 ```{r include=FALSE}
 library(JuliaCall)
-julia <- julia_setup()
+julia <- julia_setup(JULIA_HOME = "/usr/local/bin/")
 julia$command(paste0("filepath = \"", params$filepath, "\""))
 ```
 
@@ -35,12 +35,12 @@ Coloring](https://en.wikipedia.org/wiki/Domain_coloring).  I immediately tried
 to create similar images, at the beginning using the GNU Image
 Manipulation Program (GIMP) and its [MathMap
 plugin](https://github.com/schani/mathmap/). Initially MathMap did
-not even have any support for complex numbers, and all calculations has to be done
+not even have any support for complex numbers, and all calculations had to be done
 using reals, which made more complicated functions practically impossible to
 work with. [Hans Lundmark](http://users.mai.liu.se/hanlu09/complex/) was also
 interested in working with MathMap plugin, and he added a support for complex
 numbers, so we were able to create some pretty interesting images. Later I
-wrote some Python scripts that produced some pretty nice results, but were
+wrote few Python scripts that produced some pretty nice results, but were
 horribly written, and luckily, got lost in the cracks of time. I also used a
 nice [S-lang script](http://www.jedsoft.org/fun/complex/) written by [John
 Davis](https://www.jedsoft.org/). I still have some old images created with
@@ -53,7 +53,7 @@ complex valued continued fraction approximations each day. At that time I was
 just learning Julia, and decided that with its speed it would be a perfect tool
 for generating such images. That resulted in a Jupyter notebook with some code
 generating such images. While looking for it last month, I was not able to
-find it. I believe now that I had it stored on `juliabox.org`, and when they
+find it. I now believe that I had it stored on `juliabox.org`, and when they
 moved to a `.com` domain, I completely missed the transition period when you
 could have your files moved over, and now they are gone. So it had to be
 written again, and here it is.
@@ -164,8 +164,7 @@ end
 
 We will start by creating a $500\times 500$ array of complex numbers
 representing an area of complex plane (this should really be made more
-flexible, but at this moment I just want to see some pictures, so I cannot be
-bothered to do this right).
+flexible, but at this moment I just want to see some quick pictures).
 
 ```{julia}
 function plane(x0, y0, x1, y1)
@@ -175,7 +174,8 @@ function plane(x0, y0, x1, y1)
 end
 ```
 
-We will feed this region as an input to our continuing fraction approximation to get an array of complex values. Then we convert this array into an image.
+We will feed this region as an input to our continuing fraction approximation
+to get an array of complex values. Then we convert this array into an image.
 
 ### Mapping complex numbers to colors
 
@@ -365,14 +365,14 @@ savemyimage("image3.png", img);
 
 ## Problems, notes, _etc._
 
-One big problem with these images is that they are _not_ images of continuing
+One problem with these images is that they are _not_ images of continuing
 fractions.  At best they are images of approximations of these fractions, but
 even that is not necessarily true.  What we really visualize here are specific
 _convergents_ of the continuing fractions, without actually making any claims
 of convergence or quality of approximation.
 
 Even in cases where the continuing fraction converges, the method we use for
-calculating convergents is of limited use: the numerator and denominator
+calculating the convergents is of limited use: the numerator and denominator
 sequences may diverge, and so trying to improve our approximation of the
 continuing fraction may result in a floating point overflow.
 

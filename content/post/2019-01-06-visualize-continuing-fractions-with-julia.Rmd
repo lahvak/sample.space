@@ -16,7 +16,7 @@ params:
 
 ```{r include=FALSE}
 library(JuliaCall)
-julia <- julia_setup()
+julia <- julia_setup(JULIA_HOME = "/usr/local/bin/")
 julia$command(paste0("filepath = \"", params$filepath, "\""))
 ```
 
