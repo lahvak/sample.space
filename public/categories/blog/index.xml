@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Blog on Lahvak&#39;s Sample Space</title>
+    <link>/categories/blog/</link>
+    <description>Recent content in Blog on Lahvak&#39;s Sample Space</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Tue, 09 Apr 2019 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/categories/blog/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>How to comment on this blog</title>
+      <link>/2019/04/09/how-to-comment-on-this-blog/</link>
+      <pubDate>Tue, 09 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/2019/04/09/how-to-comment-on-this-blog/</guid>
+      <description>This blog uses utterance.es to enable commenting on posts. Utterances use GitHub issues to keep track of commens. Basically the way it works is, when you comment, an issue will be created on GitHub with your comment. Utterances then finds all issues related to a post, and displays them as comments at the bottom of the post.
+This makes it easy for me, because all your comments are available to me on GitHub, where I can easily access and manage them.</description>
+    </item>
+    
+  </channel>
+</rss>
