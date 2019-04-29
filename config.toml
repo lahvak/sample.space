@@ -41,6 +41,10 @@ ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$"]
     url = "https://github.com/lahvak"
     weight = 5
 [[menu.main]]
+    name = "twtxt"
+    url = "http://twtxt.xyz/user/4802a8d4657c9fa0"
+    weight = 6
+[[menu.main]]
     name = "RSS"
     url = "/index.xml"
-    weight = 6
+    weight = 7

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  
+
+  <link rel="icon" type="image/png" href="../../../../favicon.png">
+  
+  <link rel="stylesheet" href="../../../../css/github.css" rel="stylesheet" id="theme-stylesheet"> 
+    <script src="../../../../js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+  <title>
+    
+    
+     Tidyverse: rows as vectors? 
+    
+  </title>
+  <link rel="canonical" href="../../../../2019/04/14/tidyverse-rows-as-vectors/">
+
+  <link rel="stylesheet" href="../../../../css/fonts.css" />
+  <link rel="stylesheet" href="../../../../css/style.css" />
+
+  
+</head>
+
+<body>
+<section id=nav>
+  <h1><a href="../../../../">The Sample Space</a></h1>
+  <ul>
+    
+    <li><a href="https://space.lahvak.space/">Home</a></li>
+    
+    <li><a href="../../../../tags/">Tags</a></li>
+    
+    <li><a href="../../../../categories/">Categories</a></li>
+    
+    <li><a href="../../../../about/">About</a></li>
+    
+    <li><a href="https://github.com/lahvak">GitHub</a></li>
+    
+    <li><a href="http://twtxt.xyz/user/4802a8d4657c9fa0">twtxt</a></li>
+    
+    <li><a href="../../../../index.xml">RSS</a></li>
+    
+  </ul>
+</section>
+<hr>
+
+
+<section id=content>
+  <h1> Tidyverse: rows as vectors? </h1>
+
+
+  <div id=sub-header>
+    Jan Hlavacek · 2019/04/14 · 10 minute read
+  </div>
+
+
+  <div class="entry-content">
+    
+
+
+<p>This has been bothering me for a while: is there a good simple way to apply a
+formula to rows of a data frame or table, where the formula would consume the
+rows as vectors?</p>
+<div id="motivation" class="section level2">
+<h2>Motivation</h2>
+<p>The section 3.3 of the <a href="https://www.openintro.org/stat/textbook.php?stat_book=isrs">Introductory Statistics with Randomization and
+Simulation</a>
+contains the following example:</p>
+<blockquote>
+<p>In the first case, we consider data from a random sample of 275 jurors in a
+small county. Jurors identified their racial group, as shown in
+the table below, and we would like
+to determine if these jurors are racially representative of the population. If
+the jury is representative of the population, then the proportions in the
+sample should roughly reflect the population of eligible jurors,
+i.e. registered voters.</p>
+</blockquote>
+<table>
+<thead>
+<tr class="header">
+<th align="right">Race:</th>
+<th align="center">White</th>
+<th align="center">Black</th>
+<th align="center">Hispanic</th>
+<th align="center">Other</th>
+<th align="center">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">Representation in juries:</td>
+<td align="center">205</td>
+<td align="center">26</td>
+<td align="center">25</td>
+<td align="center">19</td>
+<td align="center">275</td>
+</tr>
+<tr class="even">
+<td align="right">Registered voters:</td>
+<td align="center">0.72</td>
+<td align="center">0.07</td>
+<td align="center">0.12</td>
+<td align="center">0.09</td>
+<td align="center">1.00</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>While the proportions in the juries do not precisely represent the population
+proportions, it is unclear whether these data provide convincing evidence that
+the sample is not representative. If the jurors really were randomly sampled
+from the registered voters, we might expect small differences due to chance.
+However, unusually large differences may provide convincing evidence that the
+juries were not representative.</p>
+</blockquote>
+<p>Although the book has the words “Randomization and Simulation” in the title, it
+does not talk about simulation for a goodness of fit test. Instead, it jumps
+straight into calculating <span class="math inline">\(\chi^2\)</span> score, and then brings in the <span class="math inline">\(\chi^2\)</span>
+distribution and goes on to find the p-value estimate from the table that is in
+the back of the book. This is, however, very easy to simulate. There is just
+one step that I wish was a bit simpler.</p>
+</div>
+<div id="simulation" class="section level2">
+<h2>Simulation</h2>
+<p>We will make one basic assumption to make the simulation simpler: we will
+assume that the county, although small, is nevertheless large enough so that
+when we select a sample of size 275, the selections can be considered
+independent.</p>
+<p>The question we are trying to answer here is: <em>how would the samples look like
+if the jurors really were selected completely randomly from the population?</em> We
+can easily get an answer to that by taking a bag with 100 pieces of paper, 72
+of them labeled <em>White</em>, 7 labeled <em>Black</em>, 12 labeled <em>Hispanic</em> and 9 labeled
+<em>Other</em>. This bag will simulate the county population. Then we randomly sample
+275 pieces of paper with replacement (since we assume that the individual
+selections can be considered independent).</p>
+<p>A lot of very easy simulations of this type in R can be done with the <code>mosaic</code>
+package. In class I usually start with two level factor variables (single
+proportion), simulated either by sampling from a bag or using a loaded coin.
+We will also use the <code>tidyverse</code>: first we will want <code>forcats</code> to make creating
+an ordered factor easier, and later we will use more <code>tidyverse</code> packages to
+analyze the results of the simulation.</p>
+<pre class="r"><code>library(tidyverse)
+library(mosaic)</code></pre>
+<p>We need to prepare a “bag” from which we will sample. There are several ways
+to do this. For example, we can start by creating a list of labels to use. It
+is important to create the labels as an ordered factor, so later as we simulate
+the sampling, things will be always kept in the same predictable order.</p>
+<p>In plain R, creating an ordered factor with a specific order requires a bit of
+a boilerplate, but the <code>forcats</code> package makes this much easier. The only
+thing that I find puzzling is that a function that is specifically designed for
+creating factors with a specific order has an <code>ordered</code> parameter that defaults
+to <code>FALSE</code>. Consistency … hobgoblin …. I mean, one of the great things
+about the <code>tidyverse</code> is that unlike functions in base R, that are, as they say
+in my country, “each dog different village”<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>, the tidyverse functions have a
+consistent interface, but this seems to be going a bit too far.</p>
+<pre class="r"><code>labels &lt;- fct_inorder(c(&quot;White&quot;, &quot;Black&quot;, &quot;Hispanic&quot;, &quot;Other&quot;), ordered=TRUE)</code></pre>
+<p>We will also need a table of percentages that describe the population from
+which we sample. We can use the labels as names for the list entries, just to
+keep things a bit more organized.</p>
+<pre class="r"><code>percentages &lt;- c(72, 7, 12, 9)
+names(percentages) &lt;- labels
+percentages</code></pre>
+<pre><code>##    White    Black Hispanic    Other 
+##       72        7       12        9</code></pre>
+<p>Now we are ready to create the bag that will represent the county population,
+from which we will sample. We could also simply sample directly from the
+<code>labels</code> variable, and use the <code>percentages</code> to specify the probability of each
+of the labels, but let’s try to simulate the sampling from a bag with pieces of
+paper as closely as possible.</p>
+<pre class="r"><code>bag &lt;- rep(labels, percentages)
+bag</code></pre>
+<pre><code>##   [1] White    White    White    White    White    White    White   
+##   [8] White    White    White    White    White    White    White   
+##  [15] White    White    White    White    White    White    White   
+##  [22] White    White    White    White    White    White    White   
+##  [29] White    White    White    White    White    White    White   
+##  [36] White    White    White    White    White    White    White   
+##  [43] White    White    White    White    White    White    White   
+##  [50] White    White    White    White    White    White    White   
+##  [57] White    White    White    White    White    White    White   
+##  [64] White    White    White    White    White    White    White   
+##  [71] White    White    Black    Black    Black    Black    Black   
+##  [78] Black    Black    Hispanic Hispanic Hispanic Hispanic Hispanic
+##  [85] Hispanic Hispanic Hispanic Hispanic Hispanic Hispanic Hispanic
+##  [92] Other    Other    Other    Other    Other    Other    Other   
+##  [99] Other    Other   
+## Levels: White &lt; Black &lt; Hispanic &lt; Other</code></pre>
+<p>Now we can sample from the bag. Sample 275 pieces of paper with replacement,
+and tally the results:</p>
+<pre class="r"><code>tally(sample(bag, 275, replace=TRUE))</code></pre>
+<pre><code>## X
+##    White    Black Hispanic    Other 
+##      192       21       41       21</code></pre>
+<p>This is an example how the juror distribution could look like if the jurors
+were selected randomly.</p>
+<p>Now we want to repeat this many times, and collect the results. The <code>mosaic</code>
+package makes this really easy:</p>
+<pre class="r"><code>do(1000) * tally(sample(bag, 275, replace=TRUE)) -&gt; selections
+glimpse(selections)</code></pre>
+<pre><code>## Observations: 1,000
+## Variables: 4
+## $ White    &lt;int&gt; 202, 191, 195, 212, 199, 200, 199, 200, 192, 189, 193, …
+## $ Black    &lt;int&gt; 16, 23, 25, 20, 15, 18, 14, 22, 21, 22, 27, 24, 27, 14,…
+## $ Hispanic &lt;int&gt; 37, 34, 29, 22, 36, 25, 38, 31, 35, 36, 26, 35, 26, 38,…
+## $ Other    &lt;int&gt; 20, 27, 26, 21, 25, 32, 24, 22, 27, 28, 29, 21, 21, 24,…</code></pre>
+<p>As we can see, each row of the <code>selection</code> data set is a summary of a simple
+random sample of size 275 from the simulated population. We can perhaps see it
+better when looking at the first few rows:</p>
+<pre class="r"><code>head(selections)</code></pre>
+<pre><code>##   White Black Hispanic Other
+## 1   202    16       37    20
+## 2   191    23       34    27
+## 3   195    25       29    26
+## 4   212    20       22    21
+## 5   199    15       36    25
+## 6   200    18       25    32</code></pre>
+</div>
+<div id="chi2-scores" class="section level2">
+<h2><span class="math inline">\(\chi^2\)</span> scores</h2>
+<p>Now that we have a large number of samples that are randomly selected from the
+given population, we need some way to compare the observed sample with all
+these simulated samples. We want to find some way to rank each sample, that
+will tell us <em>how far</em> each sample is from an ideal sample that has exactly
+the same proportions of each category as the population itself.</p>
+<p>This is usually done with so called <span class="math inline">\(\chi^2\)</span> scores. For each category, we want
+to compare the frequency of that category in the sample with the expected
+frequency of the category. Since each category has different expected
+frequency, the distributions of the frequencies will be different. To be able
+to safely combine and compare the frequencies in different categories, we need
+to divide the difference between the sample frequency and the expected
+frequency by the standard deviation, which, in this case, can be calculated as
+the square root of the expected frequency. That means we actually calculate the
+z-score of each sample frequency.</p>
+<p>To combine the z-scores for all categories together, we need to make them
+non-negative, and then add them together. For the <span class="math inline">\(\chi^2\)</span>-score, we make them
+non-negative by squaring them, so the score is then calculated as
+<span class="math display">\[\chi^2 = \sum \frac{\left(\text{sample frequency} - \text{expected frequency}\right)^2}{\text{expected frequency}}\]</span>
+Let’s start by calculating the <span class="math inline">\(\chi^2\)</span> score of the observed sample. To start
+with we need to find the expected frequencies. The sample size is 275, and the
+population percentages for each category we already entered:</p>
+<pre class="r"><code>percentages</code></pre>
+<pre><code>##    White    Black Hispanic    Other 
+##       72        7       12        9</code></pre>
+<p>The expected frequencies will then be</p>
+<pre class="r"><code>expected &lt;- 275*percentages/100
+expected</code></pre>
+<pre><code>##    White    Black Hispanic    Other 
+##   198.00    19.25    33.00    24.75</code></pre>
+<p>We also need to enter the frequencies of the observed sample:</p>
+<pre class="r"><code>observed &lt;- c(205, 26, 25, 19)
+names(observed) &lt;- labels
+observed</code></pre>
+<pre><code>##    White    Black Hispanic    Other 
+##      205       26       25       19</code></pre>
+<p>Then the <span class="math inline">\(\chi^2\)</span> score of the observed sample is simply</p>
+<pre class="r"><code>observed_chi_square &lt;- sum((observed - expected)^2/expected)
+observed_chi_square</code></pre>
+<pre><code>## [1] 5.88961</code></pre>
+<p>Now we need to do the same calculation for each of the simulated samples. This
+is where things get complicated.</p>
+<p>Ideally, we would just map the formula over the data set, row wise. However, I
+was not able to find a way to do this. A logical place to look at would be the
+<a href="https://purrr.tidyverse.org/">purrr</a> package. It does provide some ways of
+mapping a formula over rows, however, as far as I can tell, none of them will
+let me use rows as vectors. From the description it would seem like <code>pmap</code>
+should do it, but I was unable to make it work, and none of the examples that I
+found on the web seem to apply to this situation. It seems that there is no
+way to use the whole row as a vector in <code>pmap</code>. As far as I can tell, you
+need to specifically enter each of the arguments in <code>pmap</code>, using numbered
+codes like <code>..1</code>, <code>..2</code>, and so on.</p>
+<p>I can do for example this:</p>
+<pre class="r"><code>selections %&gt;%
+    mutate(chisq = pmap_dbl(., ~sum((c(..1, ..2, ..3, ..4) -
+                                 expected)^2/expected))) %&gt;%
+    head()</code></pre>
+<pre><code>##   White Black Hispanic Other    chisq
+## 1   202    16       37    20 2.025974
+## 2   191    23       34    27 1.212843
+## 3   195    25       29    26 2.310967
+## 4   212    20       22    21 5.253968
+## 5   199    15       36    25 1.218615
+## 6   200    18       25    32 4.164502</code></pre>
+<p>which is fairly close to what I am looking for, but the <code>c(..1, ..2, ..3, ..4)</code>
+will quickly get unwieldy and error prone with larger number of categories.</p>
+<p>Ideally, I would like to be able to do something like</p>
+<pre class="r"><code>pmap_dbl(selections, ~sum((.row - expected)^2/expected))</code></pre>
+<p>but there does not seem to be any way to do this.</p>
+<p>One way is to <em>transpose</em> the data frame - it is way easier to map things over
+columns than over rows. This will work nicely:</p>
+<pre class="r"><code>selections %&gt;%
+    mutate(chisq = transpose(.) %&gt;%
+           simplify_all() %&gt;%
+           map_dbl(~sum((.x - expected)^2/expected))) %&gt;%
+    head()</code></pre>
+<pre><code>##   White Black Hispanic Other    chisq
+## 1   202    16       37    20 2.025974
+## 2   191    23       34    27 1.212843
+## 3   195    25       29    26 2.310967
+## 4   212    20       22    21 5.253968
+## 5   199    15       36    25 1.218615
+## 6   200    18       25    32 4.164502</code></pre>
+<p>or, equivalently,</p>
+<pre class="r"><code>selections %&gt;%
+    mutate(chisq = transpose(.) %&gt;%
+           map_dbl(~sum((as_vector(.x) - expected)^2/expected))) %&gt;%
+    head()</code></pre>
+<pre><code>##   White Black Hispanic Other    chisq
+## 1   202    16       37    20 2.025974
+## 2   191    23       34    27 1.212843
+## 3   195    25       29    26 2.310967
+## 4   212    20       22    21 5.253968
+## 5   199    15       36    25 1.218615
+## 6   200    18       25    32 4.164502</code></pre>
+<p>The problems I have with this approach are:</p>
+<ol style="list-style-type: decimal">
+<li>It requires a “nested” pipe (or a mess of nested parentheses which is something
+that students learning R for the first time have trouble with).</li>
+<li>It introduces two additional concepts (transposition and either <code>simplify_all</code>
+or <code>as_vector</code>) that have nothing to do with the already pretty complicated
+topic of goodness of fit test.</li>
+</ol>
+</div>
+<div id="finishing-the-test" class="section level2">
+<h2>Finishing the test</h2>
+<p>Let’s quickly finish the comparison of the observed sample frequencies with the
+simulated sample frequencies. First, let’s actually use one of the less than
+ideal ways to calculate the <span class="math inline">\(\chi^2\)</span> scores:</p>
+<pre class="r"><code>selections %&gt;%
+    mutate(chisq = transpose(.) %&gt;%
+           map_dbl(~sum((as_vector(.x) - expected)^2/expected))) -&gt;
+    selections_with_chisq</code></pre>
+<p>Then we plot the <span class="math inline">\(\chi^2\)</span> scores of all the simulated samples, and mark the
+observed <span class="math inline">\(\chi^2\)</span> on the plot with a vertical line.</p>
+<pre class="r"><code>gf_histogram(~chisq, data = selections_with_chisq) %&gt;%
+    gf_vline(xintercept = observed_chi_square, color=&quot;red&quot;)</code></pre>
+<p><img src="../../../../post/2019-04-14-tidyverse-rows-as-vectors_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
+<p>We can then easily answer the question “how many of the 1000 simulated samples
+had a <span class="math inline">\(\chi^2\)</span> score greater than or equal to the observed <span class="math inline">\(\chi^2\)</span> score?”</p>
+<pre class="r"><code>count(~(chisq &gt;= observed_chi_square), data = selections_with_chisq)</code></pre>
+<pre><code>## n_TRUE 
+##    118</code></pre>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>I don’t understand it either, but
+at least it rhymes in Czech.<a href="#fnref1" class="footnote-back">↩</a></p></li>
+</ol>
+</div>
+
+  </div>
+
+  <div id=links>
+    
+      <a class="basic-alignment left" href="../../../../2019/04/09/how-to-comment-on-this-blog/">&laquo; How to comment on this blog</a>
+    
+    
+  </div>
+</section>
+
+
+
+
+
+
+
+
+  
+
+
+
+<a href='https://github.com/lahvak/sample.space/edit/master/content/post/2019-04-14-tidyverse-rows-as-vectors.Rmd'>Edit this page</a> on GitHub.
+
+
+
+
+
+<section id="comments">
+<div id="utterances"></div>
+<script src="https://utteranc.es/client.js"
+        repo="lahvak/sample.space"
+        issue-term="pathname"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+<noscript>Enable JavaScript to view comments.</noscript>
+</section>
+
+
+
+
+  
+  
+<script src="../../../../js/math-code.js"></script>
+<script async src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+
+</body>
+</html>
+

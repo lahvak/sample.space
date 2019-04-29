@@ -6,10 +6,21 @@
     <description>Recent content in Posts on Lahvak&#39;s Sample Space</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Tue, 09 Apr 2019 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 14 Apr 2019 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Tidyverse: rows as vectors?</title>
+      <link>/2019/04/14/tidyverse-rows-as-vectors/</link>
+      <pubDate>Sun, 14 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/2019/04/14/tidyverse-rows-as-vectors/</guid>
+      <description>This has been bothering me for a while: is there a good simple way to apply a formula to rows of a data frame or table, where the formula would consume the rows as vectors?
+Motivation The section 3.3 of the Introductory Statistics with Randomization and Simulation contains the following example:
+ In the first case, we consider data from a random sample of 275 jurors in a small county.</description>
+    </item>
     
     <item>
       <title>How to comment on this blog</title>
