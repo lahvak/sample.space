@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Crow on Lahvak&#39;s Sample Space</title>
+    <link>/tags/crow/</link>
+    <description>Recent content in Crow on Lahvak&#39;s Sample Space</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Tue, 30 Apr 2019 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/tags/crow/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Rows in tidyverse again</title>
+      <link>/2019/04/30/rows-in-tidyverse-again/</link>
+      <pubDate>Tue, 30 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/2019/04/30/rows-in-tidyverse-again/</guid>
+      <description>In the last post I complained that there is no way to apply a formula to rows of a data frame so that the formula will consume the rows as lists or vectors. Turns out I was wrong, and there is a very easy way to do it!
+Not only that, but I was actually really close to it, and if I was just reading the relevant documentation bit more carefully…</description>
+    </item>
+    
+  </channel>
+</rss>

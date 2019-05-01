@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  
+
+  <link rel="icon" type="image/png" href="../../../../favicon.png">
+  
+  <link rel="stylesheet" href="../../../../css/github.css" rel="stylesheet" id="theme-stylesheet"> 
+    <script src="../../../../js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+  <title>
+    
+    
+     Rows in tidyverse again 
+    
+  </title>
+  <link rel="canonical" href="../../../../2019/04/30/rows-in-tidyverse-again/">
+
+  <link rel="stylesheet" href="../../../../css/fonts.css" />
+  <link rel="stylesheet" href="../../../../css/style.css" />
+
+  
+</head>
+
+<body>
+<section id=nav>
+  <h1><a href="../../../../">The Sample Space</a></h1>
+  <ul>
+    
+    <li><a href="https://space.lahvak.space/">Home</a></li>
+    
+    <li><a href="../../../../tags/">Tags</a></li>
+    
+    <li><a href="../../../../categories/">Categories</a></li>
+    
+    <li><a href="../../../../about/">About</a></li>
+    
+    <li><a href="https://github.com/lahvak">GitHub</a></li>
+    
+    <li><a href="http://twtxt.xyz/user/4802a8d4657c9fa0">twtxt</a></li>
+    
+    <li><a href="../../../../index.xml">RSS</a></li>
+    
+  </ul>
+</section>
+<hr>
+
+
+<section id=content>
+  <h1> Rows in tidyverse again </h1>
+
+
+  <div id=sub-header>
+    Jan Hlavacek · 2019/04/30 · 4 minute read
+  </div>
+
+
+  <div class="entry-content">
+    
+
+
+<p>In the <a href="https://space.lahvak.space/2019/04/14/tidyverse-rows-as-vectors/">last post</a> I complained that
+there is no way to apply a formula to rows of a data frame so that the formula
+will consume the rows as lists or vectors. Turns out I was wrong, and there is
+a very easy way to do it!</p>
+<p>Not only that, but I was actually really close to it, and if I was just reading
+<a href="https://www.rdocumentation.org/packages/base/versions/3.5.3/topics/dots">the relevant documentation</a>
+bit more carefully…</p>
+<p>As I wrote in that post, this works:</p>
+<pre class="r"><code>selections %&gt;%
+    mutate(chisq = pmap_dbl(., ~sum((c(..1, ..2, ..3, ..4) -
+                                 expected)^2/expected))) %&gt;%
+    head()</code></pre>
+<p>I was suggesting that perhaps something like</p>
+<pre class="r"><code>pmap_dbl(selections, ~sum((.row - expected)^2/expected))</code></pre>
+<p>would be nice to have. While experimenting, among other things I tries this:</p>
+<pre class="r"><code>pmap_dbl(selections, ~sum((... - expected)^2/expected))</code></pre>
+<p>which of course does not work, and I am not sure why I thought it would. The
+correct way, of course, is</p>
+<pre class="r"><code>pmap_dbl(selections, ~sum((c(...) - expected)^2/expected))</code></pre>
+<p>The <code>...</code> is, in this case, equivalent to <code>..1, ..2, ..3, ..4</code>.
+Since I need <code>c(..1, ..2, ..3, ..4)</code>, I have to use <code>c(...)</code>.</p>
+<div id="the-simulation-again" class="section level2">
+<h2>The simulation again</h2>
+<p>Anyway, let’s do the whole simulation from the previous post again:</p>
+<pre class="r"><code>library(tidyverse)
+library(mosaic)</code></pre>
+<p>First enter the given information:</p>
+<pre class="r"><code>labels &lt;- fct_inorder(c(&quot;White&quot;, &quot;Black&quot;, &quot;Hispanic&quot;, &quot;Other&quot;), ordered=TRUE)
+
+percentages &lt;- c(72, 7, 12, 9)
+names(percentages) &lt;- labels
+
+observed &lt;- c(205, 26, 25, 19)
+names(observed) &lt;- labels</code></pre>
+<p>Calculate the expected frequencies and the observed <span class="math inline">\(\chi^2\)</span> score:</p>
+<pre class="r"><code>expected &lt;- 275*percentages/100
+
+observed_chi_square &lt;- sum((observed - expected)^2/expected)
+observed_chi_square</code></pre>
+<pre><code>## [1] 5.88961</code></pre>
+<p>Repeatedly sample, with replacement, 275 pieces of paper from a bag
+representing the population, tally each sample, and record the frequencies in a
+data set:</p>
+<pre class="r"><code>bag &lt;- rep(labels, percentages)
+do(1000) * tally(sample(bag, 275, replace=TRUE)) -&gt; selections
+glimpse(selections)</code></pre>
+<pre><code>## Observations: 1,000
+## Variables: 4
+## $ White    &lt;int&gt; 206, 190, 189, 196, 201, 190, 201, 203, 201, 195, 195, …
+## $ Black    &lt;int&gt; 14, 19, 17, 20, 19, 28, 23, 17, 24, 23, 17, 19, 17, 14,…
+## $ Hispanic &lt;int&gt; 36, 35, 36, 35, 27, 27, 24, 30, 28, 20, 28, 28, 35, 33,…
+## $ Other    &lt;int&gt; 19, 31, 33, 24, 28, 30, 27, 25, 22, 37, 35, 42, 25, 26,…</code></pre>
+<p>Add a new column to the data set, with the <span class="math inline">\(\chi^2\)</span> scores of the simulated samples:</p>
+<pre class="r"><code>selections %&gt;%
+    mutate(chisq = pmap_dbl(., ~sum((c(...) - expected)^2/expected))) -&gt;
+    selections_with_chisq</code></pre>
+<p>This is what we have now:</p>
+<pre class="r"><code>head(selections_with_chisq)</code></pre>
+<pre><code>##   White Black Hispanic Other     chisq
+## 1   206    14       36    19 3.3636364
+## 2   190    19       35    31 2.0259740
+## 3   189    17       36    33 3.6948052
+## 4   196    20       35    24 0.1933622
+## 5   201    19       27    28 1.5663781
+## 6   190    28       27    30 6.5050505</code></pre>
+<p>Plot the <span class="math inline">\(\chi^2\)</span> scores of all the simulated samples, and mark the
+observed <span class="math inline">\(\chi^2\)</span> on the plot with a vertical line.</p>
+<pre class="r"><code>gf_histogram(~chisq, data = selections_with_chisq) %&gt;%
+    gf_vline(xintercept = observed_chi_square, color=&quot;red&quot;)</code></pre>
+<p><img src="../../../../post/2019-04-30-rows-in-tidyverse-again_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p>How many of the 1000 simulated samples had a <span class="math inline">\(\chi^2\)</span> score greater than or equal to the observed <span class="math inline">\(\chi^2\)</span> score?</p>
+<pre class="r"><code>count(~(chisq &gt;= observed_chi_square), data = selections_with_chisq)</code></pre>
+<pre><code>## n_TRUE 
+##    132</code></pre>
+</div>
+<div id="possible-simplification" class="section level2">
+<h2>Possible simplification</h2>
+<p>I am pretty happy with this. The only thing that I think can still confuse R
+beginners is the use of <code>.</code> as the first argument of <code>pmap_dbl</code>. I usually do
+few examples of <em>tidyverse</em> pipelines at the beginning of the semester, and
+usually one or two of those use this somewhere, but I don’t think most students
+will remember those at this point. Since we do not actually need to preserve
+the original columns (the only reason I preserved them was to make the data set
+look just like a worksheet they filled in while figuring out the whole idea of
+<span class="math inline">\(\chi^2\)</span> scores), we can do this instead:</p>
+<pre class="r"><code>selections %&gt;% 
+    pmap_df(~list(chisq = sum((c(...) - expected)^2/expected))) -&gt; chisquares</code></pre>
+<p>and then replace <code>selections_with_chisq</code> by <code>chisquares</code> when making the
+histogram and calculating the p-value. I am not sure if this really is that
+much simpler, with the <code>list</code>, and <code>pmap_df</code> not being one of the basic <em>dplyr</em>
+verbs we learned at the beginning of the semester…</p>
+</div>
+
+  </div>
+
+  <div id=links>
+    
+      <a class="basic-alignment left" href="../../../../2019/04/14/tidyverse-rows-as-vectors/">&laquo; Tidyverse: rows as vectors? (Updated)</a>
+    
+    
+  </div>
+</section>
+
+
+
+
+
+
+
+
+  
+
+
+
+<a href='https://github.com/lahvak/sample.space/edit/master/content/post/2019-04-30-rows-in-tidyverse-again.Rmd'>Edit this page</a> on GitHub.
+
+
+
+
+
+<section id="comments">
+<div id="utterances"></div>
+<script src="https://utteranc.es/client.js"
+        repo="lahvak/sample.space"
+        issue-term="pathname"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+<noscript>Enable JavaScript to view comments.</noscript>
+</section>
+
+
+
+
+  
+  
+<script src="../../../../js/math-code.js"></script>
+<script async src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+
+</body>
+</html>
+

@@ -1,5 +1,5 @@
 ---
-title: 'Tidyverse: rows as vectors?'
+title: 'Tidyverse: rows as vectors? (Updated)'
 author: Jan Hlavacek
 date: '2019-04-14'
 slug: tidyverse-rows-as-vectors
@@ -16,6 +16,7 @@ tags:
 <p>This has been bothering me for a while: is there a good simple way to apply a
 formula to rows of a data frame or table, where the formula would consume the
 rows as vectors?</p>
+<p><strong>Update:</strong> There is actually a very simple way to do it. See <a href="https://space.lahvak.space/2019/04/30/rows-in-tidyverse-again/">the next post</a>.</p>
 <div id="motivation" class="section level2">
 <h2>Motivation</h2>
 <p>The section 3.3 of the <a href="https://www.openintro.org/stat/textbook.php?stat_book=isrs">Introductory Statistics with Randomization and
@@ -145,7 +146,7 @@ and tally the results:</p>
 <pre class="r"><code>tally(sample(bag, 275, replace=TRUE))</code></pre>
 <pre><code>## X
 ##    White    Black Hispanic    Other 
-##      192       21       41       21</code></pre>
+##      208       18       30       19</code></pre>
 <p>This is an example how the juror distribution could look like if the jurors
 were selected randomly.</p>
 <p>Now we want to repeat this many times, and collect the results. The <code>mosaic</code>
@@ -154,21 +155,21 @@ package makes this really easy:</p>
 glimpse(selections)</code></pre>
 <pre><code>## Observations: 1,000
 ## Variables: 4
-## $ White    &lt;int&gt; 202, 191, 195, 212, 199, 200, 199, 200, 192, 189, 193, …
-## $ Black    &lt;int&gt; 16, 23, 25, 20, 15, 18, 14, 22, 21, 22, 27, 24, 27, 14,…
-## $ Hispanic &lt;int&gt; 37, 34, 29, 22, 36, 25, 38, 31, 35, 36, 26, 35, 26, 38,…
-## $ Other    &lt;int&gt; 20, 27, 26, 21, 25, 32, 24, 22, 27, 28, 29, 21, 21, 24,…</code></pre>
+## $ White    &lt;int&gt; 190, 195, 202, 193, 192, 202, 206, 199, 202, 206, 206, …
+## $ Black    &lt;int&gt; 27, 25, 23, 18, 18, 15, 22, 14, 22, 15, 9, 21, 26, 17, …
+## $ Hispanic &lt;int&gt; 33, 21, 32, 38, 37, 37, 32, 37, 26, 31, 35, 32, 34, 29,…
+## $ Other    &lt;int&gt; 25, 34, 18, 26, 28, 21, 15, 25, 25, 23, 25, 28, 27, 19,…</code></pre>
 <p>As we can see, each row of the <code>selection</code> data set is a summary of a simple
 random sample of size 275 from the simulated population. We can perhaps see it
 better when looking at the first few rows:</p>
 <pre class="r"><code>head(selections)</code></pre>
 <pre><code>##   White Black Hispanic Other
-## 1   202    16       37    20
-## 2   191    23       34    27
-## 3   195    25       29    26
-## 4   212    20       22    21
-## 5   199    15       36    25
-## 6   200    18       25    32</code></pre>
+## 1   190    27       33    25
+## 2   195    25       21    34
+## 3   202    23       32    18
+## 4   193    18       38    26
+## 5   192    18       37    28
+## 6   202    15       37    21</code></pre>
 </div>
 <div id="chi2-scores" class="section level2">
 <h2><span class="math inline">\(\chi^2\)</span> scores</h2>
@@ -229,12 +230,12 @@ codes like <code>..1</code>, <code>..2</code>, and so on.</p>
                                  expected)^2/expected))) %&gt;%
     head()</code></pre>
 <pre><code>##   White Black Hispanic Other    chisq
-## 1   202    16       37    20 2.025974
-## 2   191    23       34    27 1.212843
-## 3   195    25       29    26 2.310967
-## 4   212    20       22    21 5.253968
-## 5   199    15       36    25 1.218615
-## 6   200    18       25    32 4.164502</code></pre>
+## 1   190    27       33    25 3.445887
+## 2   195    25       21    34 9.583694
+## 3   202    23       32    18 2.682540
+## 4   193    18       38    26 1.028139
+## 5   192    18       37    28 1.174603
+## 6   202    15       37    21 2.072150</code></pre>
 <p>which is fairly close to what I am looking for, but the <code>c(..1, ..2, ..3, ..4)</code>
 will quickly get unwieldy and error prone with larger number of categories.</p>
 <p>Ideally, I would like to be able to do something like</p>
@@ -248,24 +249,24 @@ columns than over rows. This will work nicely:</p>
            map_dbl(~sum((.x - expected)^2/expected))) %&gt;%
     head()</code></pre>
 <pre><code>##   White Black Hispanic Other    chisq
-## 1   202    16       37    20 2.025974
-## 2   191    23       34    27 1.212843
-## 3   195    25       29    26 2.310967
-## 4   212    20       22    21 5.253968
-## 5   199    15       36    25 1.218615
-## 6   200    18       25    32 4.164502</code></pre>
+## 1   190    27       33    25 3.445887
+## 2   195    25       21    34 9.583694
+## 3   202    23       32    18 2.682540
+## 4   193    18       38    26 1.028139
+## 5   192    18       37    28 1.174603
+## 6   202    15       37    21 2.072150</code></pre>
 <p>or, equivalently,</p>
 <pre class="r"><code>selections %&gt;%
     mutate(chisq = transpose(.) %&gt;%
            map_dbl(~sum((as_vector(.x) - expected)^2/expected))) %&gt;%
     head()</code></pre>
 <pre><code>##   White Black Hispanic Other    chisq
-## 1   202    16       37    20 2.025974
-## 2   191    23       34    27 1.212843
-## 3   195    25       29    26 2.310967
-## 4   212    20       22    21 5.253968
-## 5   199    15       36    25 1.218615
-## 6   200    18       25    32 4.164502</code></pre>
+## 1   190    27       33    25 3.445887
+## 2   195    25       21    34 9.583694
+## 3   202    23       32    18 2.682540
+## 4   193    18       38    26 1.028139
+## 5   192    18       37    28 1.174603
+## 6   202    15       37    21 2.072150</code></pre>
 <p>The problems I have with this approach are:</p>
 <ol style="list-style-type: decimal">
 <li>It requires a “nested” pipe (or a mess of nested parentheses which is something
@@ -293,7 +294,7 @@ observed <span class="math inline">\(\chi^2\)</span> on the plot with a vertical
 had a <span class="math inline">\(\chi^2\)</span> score greater than or equal to the observed <span class="math inline">\(\chi^2\)</span> score?”</p>
 <pre class="r"><code>count(~(chisq &gt;= observed_chi_square), data = selections_with_chisq)</code></pre>
 <pre><code>## n_TRUE 
-##    118</code></pre>
+##    124</code></pre>
 </div>
 <div class="footnotes">
 <hr />

@@ -1,0 +1,136 @@
+---
+title: Rows in tidyverse again
+author: Jan Hlavacek
+date: '2019-04-30'
+slug: rows-in-tidyverse-again
+categories:
+  - R
+  - tidyverse
+tags:
+  - goodness of fit
+  - simulation
+  - crow
+---
+
+In the [last post](https://space.lahvak.space/2019/04/14/tidyverse-rows-as-vectors/) I complained that
+there is no way to apply a formula to rows of a data frame so that the formula
+will consume the rows as lists or vectors.  Turns out I was wrong, and there is
+a very easy way to do it!
+
+Not only that, but I was actually really close to it, and if I was just reading
+[the relevant documentation](https://www.rdocumentation.org/packages/base/versions/3.5.3/topics/dots)
+bit more carefully...
+
+As I wrote in that post, this works:
+
+```{r eval=FALSE}
+selections %>%
+    mutate(chisq = pmap_dbl(., ~sum((c(..1, ..2, ..3, ..4) -
+                                 expected)^2/expected))) %>%
+    head()
+```
+
+I was suggesting that perhaps something like
+```{r eval=FALSE}
+pmap_dbl(selections, ~sum((.row - expected)^2/expected))
+```
+would be nice to have.  While experimenting, among other things I tries this:
+```{r eval=FALSE}
+pmap_dbl(selections, ~sum((... - expected)^2/expected))
+```
+which of course does not work, and I am not sure why I thought it would.  The
+correct way, of course, is
+```{r eval=FALSE}
+pmap_dbl(selections, ~sum((c(...) - expected)^2/expected))
+```
+The `...` is, in this case, equivalent to `..1, ..2, ..3, ..4`.
+Since I need `c(..1, ..2, ..3, ..4)`, I have to use `c(...)`.
+
+## The simulation again
+
+Anyway, let's do the whole simulation from the previous post again:
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(mosaic)
+```
+
+First enter the given information:
+
+```{r}
+labels <- fct_inorder(c("White", "Black", "Hispanic", "Other"), ordered=TRUE)
+
+percentages <- c(72, 7, 12, 9)
+names(percentages) <- labels
+
+observed <- c(205, 26, 25, 19)
+names(observed) <- labels
+```
+
+Calculate the expected frequencies and the observed $\chi^2$ score:
+
+```{r}
+expected <- 275*percentages/100
+
+observed_chi_square <- sum((observed - expected)^2/expected)
+observed_chi_square
+```
+
+Repeatedly sample, with replacement, 275 pieces of paper from a bag
+representing the population, tally each sample, and record the frequencies in a
+data set:
+
+```{r}
+bag <- rep(labels, percentages)
+do(1000) * tally(sample(bag, 275, replace=TRUE)) -> selections
+glimpse(selections)
+```
+
+Add a new column to the data set, with the $\chi^2$ scores of the simulated samples:
+
+```{r}
+selections %>%
+    mutate(chisq = pmap_dbl(., ~sum((c(...) - expected)^2/expected))) ->
+    selections_with_chisq
+```
+
+This is what we have now:
+```{r}
+head(selections_with_chisq)
+```
+
+Plot the $\chi^2$ scores of all the simulated samples, and mark the
+observed $\chi^2$ on the plot with a vertical line.
+
+```{r}
+gf_histogram(~chisq, data = selections_with_chisq) %>%
+    gf_vline(xintercept = observed_chi_square, color="red")
+```
+
+How many of the 1000 simulated samples had a $\chi^2$ score greater than or equal to the observed $\chi^2$ score?
+
+```{r}
+count(~(chisq >= observed_chi_square), data = selections_with_chisq)
+```
+
+## Possible simplification
+
+I am pretty happy with this. The only thing that I think can still confuse R
+beginners is the use of `.` as the first argument of `pmap_dbl`. I usually do
+few examples of _tidyverse_ pipelines at the beginning of the semester, and
+usually one or two of those use this somewhere, but I don't think most students
+will remember those at this point.  Since we do not actually need to preserve
+the original columns (the only reason I preserved them was to make the data set
+look just like a worksheet they filled in while figuring out the whole idea of
+$\chi^2$ scores), we can do this instead:
+
+```{r}
+selections %>% 
+    pmap_df(~list(chisq = sum((c(...) - expected)^2/expected))) -> chisquares
+```
+and then replace `selections_with_chisq` by `chisquares` when making the
+histogram and calculating the p-value.  I am not sure if this really is that
+much simpler, with the `list`, and `pmap_df` not being one of the basic _dplyr_
+verbs we learned at the beginning of the semester...
+
+

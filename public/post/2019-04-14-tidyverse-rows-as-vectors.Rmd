@@ -1,5 +1,5 @@
 ---
-title: 'Tidyverse: rows as vectors?'
+title: 'Tidyverse: rows as vectors? (Updated)'
 author: Jan Hlavacek
 date: '2019-04-14'
 slug: tidyverse-rows-as-vectors
@@ -14,6 +14,8 @@ tags:
 This has been bothering me for a while: is there a good simple way to apply a
 formula to rows of a data frame or table, where the formula would consume the
 rows as vectors?
+
+__Update:__ There is actually a very simple way to do it. See [the next post](https://space.lahvak.space/2019/04/30/rows-in-tidyverse-again/).
 
 ## Motivation
 

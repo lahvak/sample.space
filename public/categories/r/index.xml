@@ -6,18 +6,29 @@
     <description>Recent content in R on Lahvak&#39;s Sample Space</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 14 Apr 2019 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Tue, 30 Apr 2019 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/categories/r/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
-      <title>Tidyverse: rows as vectors?</title>
+      <title>Rows in tidyverse again</title>
+      <link>/2019/04/30/rows-in-tidyverse-again/</link>
+      <pubDate>Tue, 30 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/2019/04/30/rows-in-tidyverse-again/</guid>
+      <description>In the last post I complained that there is no way to apply a formula to rows of a data frame so that the formula will consume the rows as lists or vectors. Turns out I was wrong, and there is a very easy way to do it!
+Not only that, but I was actually really close to it, and if I was just reading the relevant documentation bit more carefully…</description>
+    </item>
+    
+    <item>
+      <title>Tidyverse: rows as vectors? (Updated)</title>
       <link>/2019/04/14/tidyverse-rows-as-vectors/</link>
       <pubDate>Sun, 14 Apr 2019 00:00:00 +0000</pubDate>
       
       <guid>/2019/04/14/tidyverse-rows-as-vectors/</guid>
       <description>This has been bothering me for a while: is there a good simple way to apply a formula to rows of a data frame or table, where the formula would consume the rows as vectors?
+Update: There is actually a very simple way to do it. See the next post.
 Motivation The section 3.3 of the Introductory Statistics with Randomization and Simulation contains the following example:
  In the first case, we consider data from a random sample of 275 jurors in a small county.</description>
     </item>
