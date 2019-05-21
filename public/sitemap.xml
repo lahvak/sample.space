@@ -3,6 +3,11 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>/2019/05/19/parsing-exam-scantron-sheet-with-cassava/</loc>
+    <lastmod>2019-05-19T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
     <loc>/2019/04/30/rows-in-tidyverse-again/</loc>
     <lastmod>2019-04-30T00:00:00+00:00</lastmod>
   </url>
@@ -63,8 +68,14 @@
   </url>
   
   <url>
-    <loc>/categories/julia/</loc>
-    <lastmod>2019-01-06T00:00:00+00:00</lastmod>
+    <loc>/tags/haskell/</loc>
+    <lastmod>2019-05-19T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>/categories/haskell/</loc>
+    <lastmod>2019-05-19T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -75,14 +86,32 @@
   </url>
   
   <url>
+    <loc>/categories/julia/</loc>
+    <lastmod>2019-01-06T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>/</loc>
-    <lastmod>2019-04-30T00:00:00+00:00</lastmod>
+    <lastmod>2019-05-19T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>/categories/math/</loc>
     <lastmod>2019-01-06T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>/tags/math-olympics/</loc>
+    <lastmod>2019-05-19T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>/tags/parsing/</loc>
+    <lastmod>2019-05-19T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -94,7 +123,7 @@
   
   <url>
     <loc>/post/</loc>
-    <lastmod>2019-04-30T00:00:00+00:00</lastmod>
+    <lastmod>2019-05-19T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   

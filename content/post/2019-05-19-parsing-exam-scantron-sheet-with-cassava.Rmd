@@ -1,0 +1,474 @@
+---
+title: Parsing Exam Scantron Sheets with Cassava
+author: Jan Hlavacek
+date: '2019-05-19'
+slug: parsing-exam-scantron-sheet-with-cassava
+categories:
+  - Haskell
+tags:
+  - Haskell
+  - parsing
+  - Math Olympics
+---
+
+For many years, our department has been organizing an annual math competition
+for local high school students, called imaginatively [Math
+Olympics](https://www.svsu.edu/matholympics/). Over time it went through a
+number of format changes, the current one being a 25 question multiple choice
+exam, with two different levels of difficulty. Students fill in Scantron bubble
+sheets, which are then scanned using a machine.  Because of our specific
+scoring process, we do not use the scoring software that comes with the
+machine.  Instead, we take the data file that comes from the machine, and run
+it through our own scoring program.  Currently this program is a 13 years old
+Python 2 script, that has been modified extensively during the years.
+
+Recently, we switched to a new model of Scantron machines, that produce comma
+separated files instead of the raw text files that the old machines created.
+While it was easy to modify the Python script to parse the new format, the new
+machine provide some new options that we would like to take an advantage of.
+In particular, with the new data format, students can fill in several bubbles
+for each question.  In the old format, this would be marked as an error by the
+machine, but the new machine tells us exactly which bubbles were filled in.
+That gives us the possibility to use questions that have several correct
+answers, and either accept any of them as correct, or require that students
+mark all the correct options in their answer.  That would, however, require
+some significant changes to the scoring script, and at this moment, it may
+actually be a good option to rewrite the script from scratch.  I have decided
+to try to write the new scorer in Haskell instead of Python.
+
+## The Data Format:
+
+Each record in the csv file consists of 202 columns: the student name, ID
+number, and 200 answers. The student name has 74 uppercase letters or spaces
+(the actual field on the sheet is only 20 characters long, the machine appends
+54 spaces to it), the ID field has 32 spaces of digits (again, the actual fiels
+for ID on the scantron sheet is only 7 characters long, this time the machine
+prepends 25 spaces before the ID for some reason). Each of the 200 answer
+columns seem to contain one of the following:
+
+* the text "BLANK", when the answer was left blank,
+* one of the letters A, B, C, D, or E, when only one bubble was filled,
+* comma separated list of letters in parentheses, when several bubbles were
+  filled, for example "(A,B,D)".
+
+We will represent each record as
+
+```haskell
+data Sheet = 
+    Sheet
+        { name :: !Text
+        , id :: !Text
+        , answers :: [Set Option]
+        }
+        deriving (Eq, Show)
+```
+
+where the `Option` type is given by
+
+```haskell
+data Option = A | B | C | D | E | Invalid deriving (Eq, Ord, Show)
+```
+
+with one option for each of the 5 possible letter, and an `Invalid` option just
+in case something unexpected shows up.
+
+## Cassava library
+
+There are couple of options for csv parsing with Haskell.  I decided to use the
+[Cassava library](http://hackage.haskell.org/package/cassava), which has nice
+easy to use interface and good documentation.  There is even a [nice
+tutorial](https://www.stackbuilders.com/tutorials/haskell/csv-encoding-decoding/).
+There were still some things that I had to figure out, though.  All the
+examples and tutorials seem to deal with csv files that have 3 or 4 columns.
+Ours has 202 columns.  Also, I wanted to use the same parsing library to deal
+with the answers of the "(A,B,C)" form, which turned out to be surprisingly
+easy.  One great thing about Haskell is that a lot of stuff can be figured out
+simply by looking at type signatures.
+
+## Parsing
+
+### GHC extensions
+
+We will use couple of GHC extensions to make things easier:
+
+```haskell
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
+```
+
+Cassava uses ByteStrings to represent input, and the `OverloadedStrings`
+extension will make it possible to compare ByteStrings to String literals. 
+
+Since each individual answer is represented as `Set Option`, to be able to
+parse them, we will have to make `Set Option` an instance of FromField type
+class.  `FlexibleInstances` will make that possible without having to wrap `Set
+Option` in another specialized type.
+
+### Imports
+
+First of all we will obviously need some imports from the Cassava library:
+
+```haskell
+import Data.Csv
+  ( FromRecord(parseRecord)
+  , FromField(parseField)
+  , decode
+  , HasHeader(NoHeader)
+  , (.!)
+  )
+```
+
+We will use Text to represent both the student name and the ID, so we will need
+`Data.Text`:
+
+```haskell
+import Data.Text (Text)
+import qualified Data.Text as Text
+```
+
+The input data is represented using ByteStrings.  All the actual characters
+will be printable ASCII symbols (actually only uppercase letters, digits,
+spaces and few symbols such as `*` and parentheses), so to make manipulation
+easier, we will use `Data.ByteString.Char8`, which will give us ByteString
+version of bunch of string functions.  We will also need some version of
+`isSpace` to filter out unwanted spaces.
+
+```haskell
+import qualified Data.ByteString.Char8 as BS
+import Data.Char (isSpace)
+```
+
+Obviously we will need `Set`. After Cassava breaks a record into fields, it
+keeps it as a Vector of ByteStrings.  Since we will need to manipulate that a
+bit, we will need `Data.Vector`.  Also, the parsed file will be represented as
+a vector of `Sheet`s.
+
+```haskell
+-- Set
+import Data.Set (Set)
+import qualified Data.Set as Set
+
+-- Vector
+import Data.Vector (Vector)
+import qualified Data.Vector as Vector
+```
+
+Finally, we need `mzero` for parsing failure.
+
+```haskell
+import Control.Monad (mzero)
+```
+
+### Parsing
+
+Now we can actually define the types to represent the sheets:
+
+```haskell
+data Option = A | B | C | D | E | Invalid deriving (Eq, Ord, Show)
+
+data Sheet = 
+    Sheet
+        { name :: !Text
+          , id :: !Text
+          , answers :: [Set Option]
+        }
+        deriving (Eq, Show)
+```
+
+We need to teach Cassava how to parse the `Option` type, as well as the `Set
+Option`.  To do that, we declare `Option` and `Set Option` (with
+`FlexibleInstances`) to be of type class `FromField`. We need to implement a
+single function
+
+```haskell
+parseField :: Field -> Parser a
+```
+
+where `Field` is a synonym for ByteString.
+
+For `Option`, this is very easy: each of the valid letters gets parsed as the
+corresponding option, and everything else is `Invalid`:
+
+```haskell
+instance FromField Option where
+    parseField s
+      | s == "A" = pure A
+      | s == "B" = pure B
+      | s == "C" = pure C
+      | s == "D" = pure D
+      | s == "E" = pure E
+      | otherwise = pure Invalid
+```
+
+For `Set Option`, the parsing basically follows the three possible cases that
+can be in an answer column.  The file generated by the machine does not contain
+any extra spaces, but technically the csv file can contain extra spaces after
+commas and perhaps at other places.  Just to make sure, we will just simply
+filter all spaces out.  Then we will cover the three cases:
+
+1. The answer is "BLANK".  That should be parsed as an empty set.  It does not
+   look like there will ever be an actually empty field, but just in case, that
+   should be handled the same way as "BLANK".
+
+2. The answer is a single letter.  This should be parsed as a set containing a
+   single option.
+
+3. The answer is a set of several letters.  We already know that the input
+   has more than 1 character, otherwise it would get handled by one of the first two cases, 
+   so we can safely use `head` and `last`.  We can
+   check if the head is `(` and last `)`, in which case we strip these off,
+   split the remaining part at commas, and parse the resulting list as
+   `Option`s.
+
+4. Nothing else should ever come up, but if something does anyway, we need to
+   decide what to do.  We can use `mzero` that would fail the parsing, but I
+   don't think that is what we want to do.  Any unexpected result here
+   would probably mean the sheet was really messed up, in which case we should
+   just ignore it.  Let's make it the same as a single invalid answer.
+
+```haskell
+instance FromField (Set Option) where
+    parseField r
+      | BS.length s == 0 || s == "BLANK" = pure Set.empty
+      | BS.length s == 1 = Set.singleton <$> parseField s
+      | BS.head s == '(' && BS.last s == ')' = 
+          Set.fromList <$> 
+             traverse parseField ( BS.split ',' . BS.init . BS.tail $ s)
+      | otherwise = pure $ Set.singleton Invalid
+      where s = BS.filter (not . isSpace) r
+```
+
+Now we have to put together a parser for the whole record.  We need to make our `Sheet` type
+an instance of `FromRecord`.  For that, we need to implement the function
+
+```haskell
+parseRecord :: Record -> Parser a
+```
+
+where `Record` is a synonym for `Vector Field` and `a` is `Sheet`.
+
+If the record has at least two fields, we will assume the first is the name,
+and the second is the ID.  We will strip leading and trailing spaces from the
+name, and take only the last 7 characters from ID. Then the rest of the fields
+should be answers.  We will use the fact that `[a]` is an instance of
+`FromRecord` if `a` has type class `FromField`.  Since we made `Set Option` an
+instance of `FromField`, we can get `Parser [Set Option]` simply by applying
+`parseRecord` on the vector of remaining fields, after dropping the name and ID
+fields.
+
+If the record has less than two fields, we simply use `mzero` to signal parsing
+failure.
+
+```haskell
+instance FromRecord Sheet where
+    parseRecord v
+        | length v >= 2 = Sheet <$> 
+            (Text.strip <$> v .! 0) <*> 
+                (Text.takeEnd 7 <$> v .! 1) <*>
+                    parseRecord (Vector.drop 2 v)
+        | otherwise = mzero
+```
+
+That's it!  Now we are able to parse the csv files generated by our Scantron
+machine.
+
+For the actual Math Olympics exams, we add `Vector.take 25` call after the `Vector.drop 2 v`, because we know we only have 25 questions.
+
+## Examples
+
+Let's look at several quick examples of how this works.  First we will define a
+function `decodeRec` that, when given a ByteString, will attempt to parse it as
+a Scantron sheet.  First we will need to add
+
+```haskell
+import Data.ByteString.Lazy
+```
+
+to the import section of our file.  Then define
+
+```haskell
+decodeRec :: Data.ByteString.Lazy.ByteString -> Either String (Vector Sheet)
+decodeRec = decode NoHeader
+```
+
+We get the following results:
+
+```haskell
+decodeRec "MARTY BLOOM       ,          2345678,A, A ,B,C,D,C,E,C,E,C,A,B,D,D,D,D,D,D,D,D,D,D,D,D,D"
+```
+produces
+```haskell
+Right 
+    [ Exam 
+        { name = "MARTY BLOOM" 
+        , id = "2345678" 
+        , answers = 
+            [ fromList [ A ]
+            , fromList [ A ]
+            , fromList [ B ]
+            , fromList [ C ]
+            , fromList [ D ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList [ C ]
+            , fromList [ A ]
+            , fromList [ B ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            ] 
+        } 
+    ]
+```
+
+```haskell
+decodeRec "MARTY BLANK       ,          2345678,A,A,,C,BLANK,C,E,C,E,,A,B,D,D,D,D,D,D,D,D,D,D,D,D,D"
+```
+produces
+```haskell
+Right 
+    [ Exam 
+        { name = "MARTY BLANK" 
+        , id = "2345678" 
+        , answers = 
+            [ fromList [ A ]
+            , fromList [ A ]
+            , fromList []
+            , fromList [ C ]
+            , fromList []
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList []
+            , fromList [ A ]
+            , fromList [ B ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            ] 
+        } 
+    ]
+```
+
+```haskell
+decodeRec "MULTI BLOOM       ,          2345678,A,A,\"(A,B,C)\",C,B,C,E,C,E,\"(D, E, B)\",A,B,D,D,D,D,D,D,D,D,D,D,D,D,D"
+```
+produces
+```haskell
+Right 
+    [ Exam 
+        { name = "MULTI BLOOM" 
+        , id = "2345678" 
+        , answers = 
+            [ fromList [ A ]
+            , fromList [ A ]
+            , fromList 
+                [ A
+                , B
+                , C
+                ] 
+            , fromList [ C ]
+            , fromList [ B ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList 
+                [ B
+                , D
+                , E
+                ] 
+            , fromList [ A ]
+            , fromList [ B ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            ] 
+        } 
+    ]
+```
+
+```haskell
+decodeRec "MARTY BAD         ,          2345678,A,A,X,C,D,C,E,C,E,C,A,B,D,D,D,D,D,D,D,D,D,D,D,D,D"
+```
+produces
+```haskell
+Right 
+    [ Exam 
+        { name = "MARTY BAD" 
+        , id = "2345678" 
+        , answers = 
+            [ fromList [ A ]
+            , fromList [ A ]
+            , fromList [ Invalid ]
+            , fromList [ C ]
+            , fromList [ D ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList [ C ]
+            , fromList [ A ]
+            , fromList [ B ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            ] 
+        } 
+    ]
+```
+
+```haskell
+decodeRec "MIGHTY WRONG       "
+```
+produces
+```haskell
+Left "parse error (Failed reading: conversion error: mzero) at "\n"" 
+```
+
+Obviously, the last error message could be somewhat more helpful than just
+"conversion error: mzero".
+

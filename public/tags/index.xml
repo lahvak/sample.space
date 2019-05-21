@@ -48,11 +48,38 @@
     </item>
     
     <item>
+      <title>Haskell</title>
+      <link>/tags/haskell/</link>
+      <pubDate>Sun, 19 May 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/haskell/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>Julia</title>
       <link>/tags/julia/</link>
       <pubDate>Sun, 06 Jan 2019 00:00:00 +0000</pubDate>
       
       <guid>/tags/julia/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Math Olympics</title>
+      <link>/tags/math-olympics/</link>
+      <pubDate>Sun, 19 May 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/math-olympics/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Parsing</title>
+      <link>/tags/parsing/</link>
+      <pubDate>Sun, 19 May 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/tags/parsing/</guid>
       <description></description>
     </item>
     

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Parsing on Lahvak&#39;s Sample Space</title>
+    <link>/tags/parsing/</link>
+    <description>Recent content in Parsing on Lahvak&#39;s Sample Space</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sun, 19 May 2019 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/tags/parsing/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Parsing Exam Scantron Sheets with Cassava</title>
+      <link>/2019/05/19/parsing-exam-scantron-sheet-with-cassava/</link>
+      <pubDate>Sun, 19 May 2019 00:00:00 +0000</pubDate>
+      
+      <guid>/2019/05/19/parsing-exam-scantron-sheet-with-cassava/</guid>
+      <description>For many years, our department has been organizing an annual math competition for local high school students, called imaginatively Math Olympics. Over time it went through a number of format changes, the current one being a 25 question multiple choice exam, with two different levels of difficulty. Students fill in Scantron bubble sheets, which are then scanned using a machine. Because of our specific scoring process, we do not use the scoring software that comes with the machine.</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  
+
+  <link rel="icon" type="image/png" href="../../../../favicon.png">
+  
+  <link rel="stylesheet" href="../../../../css/github.css" rel="stylesheet" id="theme-stylesheet"> 
+    <script src="../../../../js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+  <title>
+    
+    
+     Parsing Exam Scantron Sheets with Cassava 
+    
+  </title>
+  <link rel="canonical" href="../../../../2019/05/19/parsing-exam-scantron-sheet-with-cassava/">
+
+  <link rel="stylesheet" href="../../../../css/fonts.css" />
+  <link rel="stylesheet" href="../../../../css/style.css" />
+
+  
+</head>
+
+<body>
+<section id=nav>
+  <h1><a href="../../../../">The Sample Space</a></h1>
+  <ul>
+    
+    <li><a href="https://space.lahvak.space/">Home</a></li>
+    
+    <li><a href="../../../../tags/">Tags</a></li>
+    
+    <li><a href="../../../../categories/">Categories</a></li>
+    
+    <li><a href="../../../../about/">About</a></li>
+    
+    <li><a href="https://github.com/lahvak">GitHub</a></li>
+    
+    <li><a href="http://twtxt.xyz/user/4802a8d4657c9fa0">twtxt</a></li>
+    
+    <li><a href="../../../../index.xml">RSS</a></li>
+    
+  </ul>
+</section>
+<hr>
+
+
+<section id=content>
+  <h1> Parsing Exam Scantron Sheets with Cassava </h1>
+
+
+  <div id=sub-header>
+    Jan Hlavacek · 2019/05/19 · 11 minute read
+  </div>
+
+
+  <div class="entry-content">
+    
+
+
+<p>For many years, our department has been organizing an annual math competition
+for local high school students, called imaginatively <a href="https://www.svsu.edu/matholympics/">Math
+Olympics</a>. Over time it went through a
+number of format changes, the current one being a 25 question multiple choice
+exam, with two different levels of difficulty. Students fill in Scantron bubble
+sheets, which are then scanned using a machine. Because of our specific
+scoring process, we do not use the scoring software that comes with the
+machine. Instead, we take the data file that comes from the machine, and run
+it through our own scoring program. Currently this program is a 13 years old
+Python 2 script, that has been modified extensively during the years.</p>
+<p>Recently, we switched to a new model of Scantron machines, that produce comma
+separated files instead of the raw text files that the old machines created.
+While it was easy to modify the Python script to parse the new format, the new
+machine provide some new options that we would like to take an advantage of.
+In particular, with the new data format, students can fill in several bubbles
+for each question. In the old format, this would be marked as an error by the
+machine, but the new machine tells us exactly which bubbles were filled in.
+That gives us the possibility to use questions that have several correct
+answers, and either accept any of them as correct, or require that students
+mark all the correct options in their answer. That would, however, require
+some significant changes to the scoring script, and at this moment, it may
+actually be a good option to rewrite the script from scratch. I have decided
+to try to write the new scorer in Haskell instead of Python.</p>
+<div id="the-data-format" class="section level2">
+<h2>The Data Format:</h2>
+<p>Each record in the csv file consists of 202 columns: the student name, ID
+number, and 200 answers. The student name has 74 uppercase letters or spaces
+(the actual field on the sheet is only 20 characters long, the machine appends
+54 spaces to it), the ID field has 32 spaces of digits (again, the actual fiels
+for ID on the scantron sheet is only 7 characters long, this time the machine
+prepends 25 spaces before the ID for some reason). Each of the 200 answer
+columns seem to contain one of the following:</p>
+<ul>
+<li>the text “BLANK”, when the answer was left blank,</li>
+<li>one of the letters A, B, C, D, or E, when only one bubble was filled,</li>
+<li>comma separated list of letters in parentheses, when several bubbles were
+filled, for example “(A,B,D)”.</li>
+</ul>
+<p>We will represent each record as</p>
+<pre class="haskell"><code>data Sheet = 
+    Sheet
+        { name :: !Text
+        , id :: !Text
+        , answers :: [Set Option]
+        }
+        deriving (Eq, Show)</code></pre>
+<p>where the <code>Option</code> type is given by</p>
+<pre class="haskell"><code>data Option = A | B | C | D | E | Invalid deriving (Eq, Ord, Show)</code></pre>
+<p>with one option for each of the 5 possible letter, and an <code>Invalid</code> option just
+in case something unexpected shows up.</p>
+</div>
+<div id="cassava-library" class="section level2">
+<h2>Cassava library</h2>
+<p>There are couple of options for csv parsing with Haskell. I decided to use the
+<a href="http://hackage.haskell.org/package/cassava">Cassava library</a>, which has nice
+easy to use interface and good documentation. There is even a <a href="https://www.stackbuilders.com/tutorials/haskell/csv-encoding-decoding/">nice
+tutorial</a>.
+There were still some things that I had to figure out, though. All the
+examples and tutorials seem to deal with csv files that have 3 or 4 columns.
+Ours has 202 columns. Also, I wanted to use the same parsing library to deal
+with the answers of the “(A,B,C)” form, which turned out to be surprisingly
+easy. One great thing about Haskell is that a lot of stuff can be figured out
+simply by looking at type signatures.</p>
+</div>
+<div id="parsing" class="section level2">
+<h2>Parsing</h2>
+<div id="ghc-extensions" class="section level3">
+<h3>GHC extensions</h3>
+<p>We will use couple of GHC extensions to make things easier:</p>
+<pre class="haskell"><code>{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}</code></pre>
+<p>Cassava uses ByteStrings to represent input, and the <code>OverloadedStrings</code>
+extension will make it possible to compare ByteStrings to String literals.</p>
+<p>Since each individual answer is represented as <code>Set Option</code>, to be able to
+parse them, we will have to make <code>Set Option</code> an instance of FromField type
+class. <code>FlexibleInstances</code> will make that possible without having to wrap <code>Set Option</code> in another specialized type.</p>
+</div>
+<div id="imports" class="section level3">
+<h3>Imports</h3>
+<p>First of all we will obviously need some imports from the Cassava library:</p>
+<pre class="haskell"><code>import Data.Csv
+  ( FromRecord(parseRecord)
+  , FromField(parseField)
+  , decode
+  , HasHeader(NoHeader)
+  , (.!)
+  )</code></pre>
+<p>We will use Text to represent both the student name and the ID, so we will need
+<code>Data.Text</code>:</p>
+<pre class="haskell"><code>import Data.Text (Text)
+import qualified Data.Text as Text</code></pre>
+<p>The input data is represented using ByteStrings. All the actual characters
+will be printable ASCII symbols (actually only uppercase letters, digits,
+spaces and few symbols such as <code>*</code> and parentheses), so to make manipulation
+easier, we will use <code>Data.ByteString.Char8</code>, which will give us ByteString
+version of bunch of string functions. We will also need some version of
+<code>isSpace</code> to filter out unwanted spaces.</p>
+<pre class="haskell"><code>import qualified Data.ByteString.Char8 as BS
+import Data.Char (isSpace)</code></pre>
+<p>Obviously we will need <code>Set</code>. After Cassava breaks a record into fields, it
+keeps it as a Vector of ByteStrings. Since we will need to manipulate that a
+bit, we will need <code>Data.Vector</code>. Also, the parsed file will be represented as
+a vector of <code>Sheet</code>s.</p>
+<pre class="haskell"><code>-- Set
+import Data.Set (Set)
+import qualified Data.Set as Set
+
+-- Vector
+import Data.Vector (Vector)
+import qualified Data.Vector as Vector</code></pre>
+<p>Finally, we need <code>mzero</code> for parsing failure.</p>
+<pre class="haskell"><code>import Control.Monad (mzero)</code></pre>
+</div>
+<div id="parsing-1" class="section level3">
+<h3>Parsing</h3>
+<p>Now we can actually define the types to represent the sheets:</p>
+<pre class="haskell"><code>data Option = A | B | C | D | E | Invalid deriving (Eq, Ord, Show)
+
+data Sheet = 
+    Sheet
+        { name :: !Text
+          , id :: !Text
+          , answers :: [Set Option]
+        }
+        deriving (Eq, Show)</code></pre>
+<p>We need to teach Cassava how to parse the <code>Option</code> type, as well as the <code>Set Option</code>. To do that, we declare <code>Option</code> and <code>Set Option</code> (with
+<code>FlexibleInstances</code>) to be of type class <code>FromField</code>. We need to implement a
+single function</p>
+<pre class="haskell"><code>parseField :: Field -&gt; Parser a</code></pre>
+<p>where <code>Field</code> is a synonym for ByteString.</p>
+<p>For <code>Option</code>, this is very easy: each of the valid letters gets parsed as the
+corresponding option, and everything else is <code>Invalid</code>:</p>
+<pre class="haskell"><code>instance FromField Option where
+    parseField s
+      | s == &quot;A&quot; = pure A
+      | s == &quot;B&quot; = pure B
+      | s == &quot;C&quot; = pure C
+      | s == &quot;D&quot; = pure D
+      | s == &quot;E&quot; = pure E
+      | otherwise = pure Invalid</code></pre>
+<p>For <code>Set Option</code>, the parsing basically follows the three possible cases that
+can be in an answer column. The file generated by the machine does not contain
+any extra spaces, but technically the csv file can contain extra spaces after
+commas and perhaps at other places. Just to make sure, we will just simply
+filter all spaces out. Then we will cover the three cases:</p>
+<ol style="list-style-type: decimal">
+<li><p>The answer is “BLANK”. That should be parsed as an empty set. It does not
+look like there will ever be an actually empty field, but just in case, that
+should be handled the same way as “BLANK”.</p></li>
+<li><p>The answer is a single letter. This should be parsed as a set containing a
+single option.</p></li>
+<li><p>The answer is a set of several letters. We already know that the input
+has more than 1 character, otherwise it would get handled by one of the first two cases,
+so we can safely use <code>head</code> and <code>last</code>. We can
+check if the head is <code>(</code> and last <code>)</code>, in which case we strip these off,
+split the remaining part at commas, and parse the resulting list as
+<code>Option</code>s.</p></li>
+<li><p>Nothing else should ever come up, but if something does anyway, we need to
+decide what to do. We can use <code>mzero</code> that would fail the parsing, but I
+don’t think that is what we want to do. Any unexpected result here
+would probably mean the sheet was really messed up, in which case we should
+just ignore it. Let’s make it the same as a single invalid answer.</p></li>
+</ol>
+<pre class="haskell"><code>instance FromField (Set Option) where
+    parseField r
+      | BS.length s == 0 || s == &quot;BLANK&quot; = pure Set.empty
+      | BS.length s == 1 = Set.singleton &lt;$&gt; parseField s
+      | BS.head s == &#39;(&#39; &amp;&amp; BS.last s == &#39;)&#39; = 
+          Set.fromList &lt;$&gt; 
+             traverse parseField ( BS.split &#39;,&#39; . BS.init . BS.tail $ s)
+      | otherwise = pure $ Set.singleton Invalid
+      where s = BS.filter (not . isSpace) r</code></pre>
+<p>Now we have to put together a parser for the whole record. We need to make our <code>Sheet</code> type
+an instance of <code>FromRecord</code>. For that, we need to implement the function</p>
+<pre class="haskell"><code>parseRecord :: Record -&gt; Parser a</code></pre>
+<p>where <code>Record</code> is a synonym for <code>Vector Field</code> and <code>a</code> is <code>Sheet</code>.</p>
+<p>If the record has at least two fields, we will assume the first is the name,
+and the second is the ID. We will strip leading and trailing spaces from the
+name, and take only the last 7 characters from ID. Then the rest of the fields
+should be answers. We will use the fact that <code>[a]</code> is an instance of
+<code>FromRecord</code> if <code>a</code> has type class <code>FromField</code>. Since we made <code>Set Option</code> an
+instance of <code>FromField</code>, we can get <code>Parser [Set Option]</code> simply by applying
+<code>parseRecord</code> on the vector of remaining fields, after dropping the name and ID
+fields.</p>
+<p>If the record has less than two fields, we simply use <code>mzero</code> to signal parsing
+failure.</p>
+<pre class="haskell"><code>instance FromRecord Sheet where
+    parseRecord v
+        | length v &gt;= 2 = Sheet &lt;$&gt; 
+            (Text.strip &lt;$&gt; v .! 0) &lt;*&gt; 
+                (Text.takeEnd 7 &lt;$&gt; v .! 1) &lt;*&gt;
+                    parseRecord (Vector.drop 2 v)
+        | otherwise = mzero</code></pre>
+<p>That’s it! Now we are able to parse the csv files generated by our Scantron
+machine.</p>
+<p>For the actual Math Olympics exams, we add <code>Vector.take 25</code> call after the <code>Vector.drop 2 v</code>, because we know we only have 25 questions.</p>
+</div>
+</div>
+<div id="examples" class="section level2">
+<h2>Examples</h2>
+<p>Let’s look at several quick examples of how this works. First we will define a
+function <code>decodeRec</code> that, when given a ByteString, will attempt to parse it as
+a Scantron sheet. First we will need to add</p>
+<pre class="haskell"><code>import Data.ByteString.Lazy</code></pre>
+<p>to the import section of our file. Then define</p>
+<pre class="haskell"><code>decodeRec :: Data.ByteString.Lazy.ByteString -&gt; Either String (Vector Sheet)
+decodeRec = decode NoHeader</code></pre>
+<p>We get the following results:</p>
+<pre class="haskell"><code>decodeRec &quot;MARTY BLOOM       ,          2345678,A, A ,B,C,D,C,E,C,E,C,A,B,D,D,D,D,D,D,D,D,D,D,D,D,D&quot;</code></pre>
+<p>produces</p>
+<pre class="haskell"><code>Right 
+    [ Exam 
+        { name = &quot;MARTY BLOOM&quot; 
+        , id = &quot;2345678&quot; 
+        , answers = 
+            [ fromList [ A ]
+            , fromList [ A ]
+            , fromList [ B ]
+            , fromList [ C ]
+            , fromList [ D ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList [ C ]
+            , fromList [ A ]
+            , fromList [ B ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            ] 
+        } 
+    ]</code></pre>
+<pre class="haskell"><code>decodeRec &quot;MARTY BLANK       ,          2345678,A,A,,C,BLANK,C,E,C,E,,A,B,D,D,D,D,D,D,D,D,D,D,D,D,D&quot;</code></pre>
+<p>produces</p>
+<pre class="haskell"><code>Right 
+    [ Exam 
+        { name = &quot;MARTY BLANK&quot; 
+        , id = &quot;2345678&quot; 
+        , answers = 
+            [ fromList [ A ]
+            , fromList [ A ]
+            , fromList []
+            , fromList [ C ]
+            , fromList []
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList []
+            , fromList [ A ]
+            , fromList [ B ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            ] 
+        } 
+    ]</code></pre>
+<pre class="haskell"><code>decodeRec &quot;MULTI BLOOM       ,          2345678,A,A,\&quot;(A,B,C)\&quot;,C,B,C,E,C,E,\&quot;(D, E, B)\&quot;,A,B,D,D,D,D,D,D,D,D,D,D,D,D,D&quot;</code></pre>
+<p>produces</p>
+<pre class="haskell"><code>Right 
+    [ Exam 
+        { name = &quot;MULTI BLOOM&quot; 
+        , id = &quot;2345678&quot; 
+        , answers = 
+            [ fromList [ A ]
+            , fromList [ A ]
+            , fromList 
+                [ A
+                , B
+                , C
+                ] 
+            , fromList [ C ]
+            , fromList [ B ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList 
+                [ B
+                , D
+                , E
+                ] 
+            , fromList [ A ]
+            , fromList [ B ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            ] 
+        } 
+    ]</code></pre>
+<pre class="haskell"><code>decodeRec &quot;MARTY BAD         ,          2345678,A,A,X,C,D,C,E,C,E,C,A,B,D,D,D,D,D,D,D,D,D,D,D,D,D&quot;</code></pre>
+<p>produces</p>
+<pre class="haskell"><code>Right 
+    [ Exam 
+        { name = &quot;MARTY BAD&quot; 
+        , id = &quot;2345678&quot; 
+        , answers = 
+            [ fromList [ A ]
+            , fromList [ A ]
+            , fromList [ Invalid ]
+            , fromList [ C ]
+            , fromList [ D ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList [ C ]
+            , fromList [ E ]
+            , fromList [ C ]
+            , fromList [ A ]
+            , fromList [ B ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            , fromList [ D ]
+            ] 
+        } 
+    ]</code></pre>
+<pre class="haskell"><code>decodeRec &quot;MIGHTY WRONG       &quot;</code></pre>
+<p>produces</p>
+<pre class="haskell"><code>Left &quot;parse error (Failed reading: conversion error: mzero) at &quot;\n&quot;&quot; </code></pre>
+<p>Obviously, the last error message could be somewhat more helpful than just
+“conversion error: mzero”.</p>
+</div>
+
+  </div>
+
+  <div id=links>
+    
+      <a class="basic-alignment left" href="../../../../2019/04/30/rows-in-tidyverse-again/">&laquo; Rows in tidyverse again</a>
+    
+    
+  </div>
+</section>
+
+
+
+
+
+
+
+
+  
+
+
+
+<a href='https://github.com/lahvak/sample.space/edit/master/content/post/2019-05-19-parsing-exam-scantron-sheet-with-cassava.Rmd'>Edit this page</a> on GitHub.
+
+
+
+
+
+<section id="comments">
+<div id="utterances"></div>
+<script src="https://utteranc.es/client.js"
+        repo="lahvak/sample.space"
+        issue-term="pathname"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+<noscript>Enable JavaScript to view comments.</noscript>
+</section>
+
+
+
+
+  
+  
+<script src="../../../../js/math-code.js"></script>
+<script async src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+
+</body>
+</html>
+
