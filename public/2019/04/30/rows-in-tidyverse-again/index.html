@@ -114,10 +114,10 @@ do(1000) * tally(sample(bag, 275, replace=TRUE)) -&gt; selections
 glimpse(selections)</code></pre>
 <pre><code>## Observations: 1,000
 ## Variables: 4
-## $ White    &lt;int&gt; 206, 190, 189, 196, 201, 190, 201, 203, 201, 195, 195, …
-## $ Black    &lt;int&gt; 14, 19, 17, 20, 19, 28, 23, 17, 24, 23, 17, 19, 17, 14,…
-## $ Hispanic &lt;int&gt; 36, 35, 36, 35, 27, 27, 24, 30, 28, 20, 28, 28, 35, 33,…
-## $ Other    &lt;int&gt; 19, 31, 33, 24, 28, 30, 27, 25, 22, 37, 35, 42, 25, 26,…</code></pre>
+## $ White    &lt;int&gt; 200, 187, 198, 196, 197, 200, 193, 187, 200, 196, 208, …
+## $ Black    &lt;int&gt; 20, 19, 23, 23, 17, 20, 27, 17, 17, 20, 16, 25, 11, 19,…
+## $ Hispanic &lt;int&gt; 31, 36, 32, 34, 35, 30, 35, 38, 35, 36, 29, 39, 44, 30,…
+## $ Other    &lt;int&gt; 24, 33, 22, 22, 26, 25, 20, 33, 23, 23, 22, 24, 24, 20,…</code></pre>
 <p>Add a new column to the data set, with the <span class="math inline">\(\chi^2\)</span> scores of the simulated samples:</p>
 <pre class="r"><code>selections %&gt;%
     mutate(chisq = pmap_dbl(., ~sum((c(...) - expected)^2/expected))) -&gt;
@@ -125,12 +125,12 @@ glimpse(selections)</code></pre>
 <p>This is what we have now:</p>
 <pre class="r"><code>head(selections_with_chisq)</code></pre>
 <pre><code>##   White Black Hispanic Other     chisq
-## 1   206    14       36    19 3.3636364
-## 2   190    19       35    31 2.0259740
-## 3   189    17       36    33 3.6948052
-## 4   196    20       35    24 0.1933622
-## 5   201    19       27    28 1.5663781
-## 6   190    28       27    30 6.5050505</code></pre>
+## 1   200    20       31    24 0.1933622
+## 2   187    19       36    33 3.6370851
+## 3   198    23       32    22 1.0663781
+## 4   196    23       34    22 1.0865801
+## 5   197    17       35    26 0.4523810
+## 6   200    20       30    25 0.3246753</code></pre>
 <p>Plot the <span class="math inline">\(\chi^2\)</span> scores of all the simulated samples, and mark the
 observed <span class="math inline">\(\chi^2\)</span> on the plot with a vertical line.</p>
 <pre class="r"><code>gf_histogram(~chisq, data = selections_with_chisq) %&gt;%
@@ -139,7 +139,7 @@ observed <span class="math inline">\(\chi^2\)</span> on the plot with a vertical
 <p>How many of the 1000 simulated samples had a <span class="math inline">\(\chi^2\)</span> score greater than or equal to the observed <span class="math inline">\(\chi^2\)</span> score?</p>
 <pre class="r"><code>count(~(chisq &gt;= observed_chi_square), data = selections_with_chisq)</code></pre>
 <pre><code>## n_TRUE 
-##    132</code></pre>
+##    112</code></pre>
 </div>
 <div id="possible-simplification" class="section level2">
 <h2>Possible simplification</h2>

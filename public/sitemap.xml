@@ -3,6 +3,11 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>/2019/12/10/another-stupid-word-problem/</loc>
+    <lastmod>2019-12-10T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
     <loc>/2019/05/19/parsing-exam-scantron-sheet-with-cassava/</loc>
     <lastmod>2019-05-19T00:00:00+00:00</lastmod>
   </url>
@@ -93,13 +98,19 @@
   
   <url>
     <loc>/</loc>
-    <lastmod>2019-05-19T00:00:00+00:00</lastmod>
+    <lastmod>2019-12-10T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>/tags/math/</loc>
+    <lastmod>2019-12-10T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>/categories/math/</loc>
-    <lastmod>2019-01-06T00:00:00+00:00</lastmod>
+    <lastmod>2019-12-10T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -123,13 +134,19 @@
   
   <url>
     <loc>/post/</loc>
-    <lastmod>2019-05-19T00:00:00+00:00</lastmod>
+    <lastmod>2019-12-10T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>/categories/r/</loc>
     <lastmod>2019-04-30T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>/tags/rant/</loc>
+    <lastmod>2019-12-10T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -142,6 +159,12 @@
   <url>
     <loc>/tags/</loc>
     <lastmod>2019-04-09T00:00:00+00:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>/categories/teaching/</loc>
+    <lastmod>2019-12-10T00:00:00+00:00</lastmod>
     <priority>0</priority>
   </url>
   
