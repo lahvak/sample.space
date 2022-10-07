@@ -26,7 +26,8 @@ f <- function(x,y) {
   return(x*y^2/(x^2 + y^4))
 }
 
-theta = seq(0, 2*pi, 0.01)
+nodes <- c(1/seq(75,5,-1)^2,seq(.05,1,.05))*pi/2
+theta = c(pi/2 - rev(nodes), pi/2, pi/2 + nodes, 3*pi/2 - rev(nodes), 3*pi/2, 3*pi/2 + nodes)
 r = seq(1, .005, -0.005)^3/10
 
 inputs <- data.frame(theta = rep(theta, length(r)),
